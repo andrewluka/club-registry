@@ -24,7 +24,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test-react": "react-scripts test",
-    "test-electron": "jest ./electron --silent",
+    "test-electron": "jest ./electron",
     "test": "npm run test-react && npm run test-electron",
     "postinstall": "electron-builder install-app-deps",
     "electron:dev": "concurrently \"BROWSER=none npm start\" \"wait-on http://localhost:3000 && tsc -p electron -w\" \"wait-on http://localhost:3000 && tsc -p electron && electron .\"",
