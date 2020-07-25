@@ -186,3 +186,17 @@ test("UsersService#unsuspendUser throws when user does not exist", () => {
 
   expect(e).toBeTruthy();
 });
+
+test("UsersService#getAllUsers", () => {
+  const db = Database(":memory:");
+  const usersService = new UsersService(db);
+
+  const name = "me";
+
+  usersService.addUser({ name });
+
+  const users = usersService.getAllUsers();
+
+  expect(users.length).toBe(1);
+  expect(users[0].name).toBe(name);
+});

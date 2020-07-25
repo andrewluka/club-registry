@@ -1,12 +1,8 @@
 import { Database } from "better-sqlite3";
-import TablesServices from "./TablesServices";
-import { Game, GameID } from "../../typings/game";
+import TablesServices from "./TablesService";
+import { Game, GameID, AddGameOptions } from "../../typings/game";
 import { UserID } from "../../typings/user";
 import UsersService from "./UsersService";
-
-interface AddGameOptions {
-  name: string;
-}
 
 interface BorrowAndReturnGameOptions {
   borrower: UserID;
@@ -19,12 +15,13 @@ export default class GamesService {
     tablesService.createTables();
   }
 
-  addGame = ({ name }: AddGameOptions): GameID => {
+  addGame = ({ name, is_suspended = false }: AddGameOptions): GameID => {
     const insertStatement = this.db.prepare(
-      "INSERT INTO games (name) VALUES (?)"
+      "INSERT INTO games (name, is_suspended) VALUES (?, ?)"
     );
 
-    const game_id = insertStatement.run(name).lastInsertRowid;
+    const game_id = insertStatement.run(name, Number(is_suspended))
+      .lastInsertRowid;
 
     return Number(game_id);
   };
@@ -163,4 +160,6 @@ borrowed game with game_id ${game}`);
       })
       .default();
   };
+
+  getAllGames = (): Game[] => this.db.prepare("SELECT * FROM games").all();
 }

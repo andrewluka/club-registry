@@ -1,7 +1,19 @@
 import { Database } from "better-sqlite3";
+import { GameID } from "../../typings/game";
+import { UserID } from "../../typings/user";
 
-export default class TablesServices {
-  constructor(private db: Database) {}
+interface BorrowerAndGame {
+  game_id: GameID;
+  user_id: UserID;
+
+  game_name: string;
+  user_name: string;
+}
+
+export default class TablesService {
+  constructor(private db: Database) {
+    this.createTables();
+  }
 
   private _createUsersTable = () => {
     this.db
@@ -52,5 +64,25 @@ export default class TablesServices {
   createTables = () => {
     this._createUsersTable();
     this._createGamesTable();
+  };
+
+  getBorrowersAndGames = (): BorrowerAndGame[] => {
+    return this.db
+      .prepare(
+        `
+        SELECT 
+          user_id,
+          game_id,
+          users.name as user_name,
+          games.name as game_name
+        FROM 
+          users
+        INNER JOIN games 
+          ON users.game_taken = games.game_id
+        ORDER BY 
+          user_id
+        `
+      )
+      .all();
   };
 }

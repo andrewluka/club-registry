@@ -1,11 +1,12 @@
 import { Database } from "better-sqlite3";
-import TablesServices from "./TablesServices";
+import TablesServices from "./TablesService";
 import { User, UserID } from "../../typings/user";
 
 interface AddUserOptions {
   name: string;
   date_of_birth?: number | null;
   phone_number?: string | null;
+  is_suspended?: boolean;
 }
 
 export default class UsersService {
@@ -18,11 +19,12 @@ export default class UsersService {
     name,
     date_of_birth = null,
     phone_number = null,
+    is_suspended = false,
   }: AddUserOptions): UserID => {
     const insertStatement = this.db.prepare(
       `
-      INSERT INTO users (name, date_of_birth, phone_number) 
-        VALUES (@name, @date_of_birth, @phone_number)
+      INSERT INTO users (name, date_of_birth, phone_number, is_suspended) 
+        VALUES (@name, @date_of_birth, @phone_number, @is_suspended)
       `
     );
 
@@ -30,6 +32,7 @@ export default class UsersService {
       name,
       date_of_birth,
       phone_number,
+      is_suspended: Number(is_suspended),
     }).lastInsertRowid;
 
     return Number(user_id);
@@ -98,4 +101,6 @@ has a game`);
   };
 
   userExists = (user_id: UserID): boolean => !!this.getUser(user_id);
+
+  getAllUsers = (): User[] => this.db.prepare("SELECT * FROM users").all();
 }

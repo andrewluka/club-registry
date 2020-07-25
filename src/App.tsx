@@ -1,26 +1,55 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+/** @jsx jsx */
+import { jsx } from "@emotion/core";
+import { HashRouter, Switch, Route } from "react-router-dom";
+import { Home } from "./screens/Home";
+import { Users } from "./screens/Users";
+import { Games } from "./screens/Games";
+import { AddGame } from "./screens/AddGame";
+import { Routes } from "./routes";
+import { useTheme } from "emotion-theming";
+import { Theme } from "../typings/theme";
+import { BorrowGame } from "./screens/BorrowGame";
 
 const App: React.FC = () => {
+  const theme = useTheme<Theme>();
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <HashRouter>
+      <div
+        className="App"
+        css={{
+          width: "100vw",
+          height: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "stretch",
+          justifyContent: "stretch",
+          // alignItems: "center",
+          // justifyContent: "center",
+        }}
+      >
+        <div
+          css={{
+            width: "100vw",
+            height: "100vh",
+            zIndex: -1,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            backgroundColor: theme.backgroundColor,
+          }}
+        ></div>
+
+        <Switch>
+          <Route path={Routes.USERS} component={Users} />
+          <Route path={Routes.GAMES} component={Games} />
+          <Route path={Routes.BORROW_GAME} component={BorrowGame} />
+          <Route path={Routes.ADD_GAME} component={AddGame} />
+          <Route path={Routes.HOME} component={Home} />
+        </Switch>
+      </div>
+    </HashRouter>
   );
-}
+};
 
 export default App;

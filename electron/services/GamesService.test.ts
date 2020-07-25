@@ -357,3 +357,17 @@ matching game and user and throws otherwise", () => {
 
   expect(e).toBeTruthy();
 });
+
+test("GamesService#getAllGames", () => {
+  const db = Database(":memory:");
+  const gamesService = new GamesService(db);
+
+  const name = "a game";
+
+  gamesService.addGame({ name });
+
+  const games = gamesService.getAllGames();
+
+  expect(games.length).toBe(1);
+  expect(games[0].name).toBe(name);
+});

@@ -6,3 +6,8 @@ export interface Game {
   is_suspended: 0 | 1;
   user_with_the_game: number;
 }
+
+export interface AddGameOptions {
+  name: string;
+  is_suspended?: boolean;
+}
