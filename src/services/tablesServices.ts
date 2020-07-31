@@ -1,5 +1,10 @@
 import { UserID, User } from "../../typings/user";
-import { GameID, Game, AddGameOptions } from "../../typings/game";
+import {
+  GameID,
+  Game,
+  AddGameOptions,
+  UpdateGameNameOptions,
+} from "../../typings/game";
 
 const electron = window.require("electron");
 const { ipcRenderer } = electron;
@@ -30,3 +35,9 @@ export const removeGame = (game_id: GameID): boolean =>
 
 export const addGame = (options: AddGameOptions): GameID | false =>
   ipcRenderer.sendSync("addGame", options);
+
+export const updateGameName = (options: UpdateGameNameOptions): boolean =>
+  ipcRenderer.sendSync("updateGameName", options);
+
+export const getGame = (game_id: number) =>
+  ipcRenderer.sendSync("getGame", game_id);

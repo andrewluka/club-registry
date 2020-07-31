@@ -9,17 +9,28 @@ import { RedirectCornerFab } from "../components/RedirectCornerFab";
 import { Routes } from "../routes";
 import AddIcon from "@material-ui/icons/Add";
 import {
-  getAllGames,
   suspendGame,
   unsuspendGame,
   removeGame,
+  updateGameName,
+  getGame,
 } from "../services/tablesServices";
-import { getMUIDatatableIsSuspendedRenderer } from "../services/getMUIDatatableIsSuspendedRenderer";
+import { getMUIDatatableIsSuspendedRenderer } from "../components/getMUIDatatableIsSuspendedRenderer";
 import { useErrorSnackbar } from "../hooks/useErrorSnackbar";
+import { useSuccessSnackbar } from "../hooks/useSuccessSnackbar";
+import { useGames } from "../hooks/useGames";
+import { getMUIDatatableEditableRenderer } from "../components/getMUIDatatableEditableRenderer";
+import { getMUIDatatableQRCodeRenderer } from "../components/getMUIDatatableQRCodeRenderer";
+import { useTheme } from "emotion-theming";
+import { Theme } from "../../typings/theme";
+import { useDismissableSnackbar } from "../hooks/useDismissableSnackbar";
 
 export const Games = () => {
   const { enqueueErrorSnackbar } = useErrorSnackbar();
-  const rows = getAllGames();
+  const { enqueueSuccessSnackbar } = useSuccessSnackbar();
+  const { enqueueDismissableSnackbar } = useDismissableSnackbar();
+  const theme = useTheme<Theme>();
+  const rows = useGames();
 
   const is_suspendedRenderer = getMUIDatatableIsSuspendedRenderer({
     suspend: suspendGame,
@@ -29,11 +40,36 @@ export const Games = () => {
 
   const columns: MUIDataTableColumnDef[] = [
     { name: "game_id", label: "ID" },
-    { name: "name", label: "Name" },
+    {
+      name: "name",
+      label: "Name",
+      options: {
+        customBodyRender: getMUIDatatableEditableRenderer({
+          theme,
+          validateInput: () => true,
+          update: ({ id, newValue }) =>
+            updateGameName({ game_id: id, newName: newValue }),
+          get: (id) => getGame(id).name,
+          enqueueErrorSnackbar,
+          enqueueSuccessSnackbar,
+        }),
+      },
+    },
     {
       name: "is_suspended",
       label: "Suspended?",
       options: { customBodyRender: is_suspendedRenderer },
+    },
+    {
+      name: "game_id",
+      label: " ",
+      options: {
+        filter: false,
+        sort: false,
+        customBodyRender: getMUIDatatableQRCodeRenderer({
+          enqueueDismissableSnackbar,
+        }),
+      },
     },
   ];
 
@@ -53,6 +89,7 @@ export const Games = () => {
                 enqueueErrorSnackbar();
                 return false;
               } else {
+                enqueueSuccessSnackbar();
               }
             },
           }}

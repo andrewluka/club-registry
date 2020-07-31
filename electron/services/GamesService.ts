@@ -1,6 +1,11 @@
 import { Database } from "better-sqlite3";
 import TablesServices from "./TablesService";
-import { Game, GameID, AddGameOptions } from "../../typings/game";
+import {
+  Game,
+  GameID,
+  AddGameOptions,
+  UpdateGameNameOptions,
+} from "../../typings/game";
 import { UserID } from "../../typings/user";
 import UsersService from "./UsersService";
 
@@ -162,4 +167,55 @@ borrowed game with game_id ${game}`);
   };
 
   getAllGames = (): Game[] => this.db.prepare("SELECT * FROM games").all();
+
+  private _createNotifierTrigger = ({
+    on,
+    onTrigger,
+    onTriggerArgs,
+  }: {
+    on: "update" | "insert" | "delete";
+    onTrigger: (...params: any[]) => any;
+    onTriggerArgs: any[];
+  }) => {
+    this.db
+      .transaction(() => {
+        const funcName =
+          onTrigger.name || "a" + Math.random().toString().replace(".", "");
+
+        this.db.function(funcName, onTrigger);
+
+        this.db
+          .prepare(
+            `
+            CREATE TRIGGER IF NOT EXISTS on_${on}_trigger_games
+              AFTER ${on} ON games 
+            BEGIN
+              SELECT ${funcName}(${onTriggerArgs.map(() => "?").join(",")});
+            END
+            `
+          )
+          .run(...onTriggerArgs);
+      })
+      .default();
+  };
+
+  createNotifierTriggers = (
+    onTrigger: (...params: any[]) => any,
+    ...onTriggerArgs: any[]
+  ) => {
+    this._createNotifierTrigger({ on: "insert", onTrigger, onTriggerArgs });
+    this._createNotifierTrigger({ on: "update", onTrigger, onTriggerArgs });
+    this._createNotifierTrigger({ on: "delete", onTrigger, onTriggerArgs });
+  };
+
+  updateGameName = ({ game_id, newName }: UpdateGameNameOptions) => {
+    this.db
+      .prepare(
+        `
+        UPDATE games SET name = @newName 
+        WHERE game_id = @game_id
+        `
+      )
+      .run({ game_id, newName });
+  };
 }

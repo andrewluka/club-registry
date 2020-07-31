@@ -200,3 +200,23 @@ test("UsersService#getAllUsers", () => {
   expect(users.length).toBe(1);
   expect(users[0].name).toBe(name);
 });
+
+test("UsersService#createNotifierTriggers", () => {
+  const db = Database(":memory:");
+  const usersService = new UsersService(db);
+
+  let x = 0;
+
+  const inc = () => (x += 1);
+
+  usersService.createNotifierTriggers(inc);
+
+  const game_id = usersService.addUser({ name: "name" });
+  expect(x).toBe(1);
+
+  db.prepare("UPDATE users SET name = ?").run("lol");
+  expect(x).toBe(2);
+
+  usersService.removeUser(game_id);
+  expect(x).toBe(3);
+});

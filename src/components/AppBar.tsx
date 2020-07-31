@@ -53,7 +53,9 @@ export const AppBar = (props: Props) => {
         {backButton && history.length && (
           <IconButton
             onClick={() =>
-              backButtonRoute ? history.push(backButtonRoute) : history.goBack()
+              backButtonRoute
+                ? history.replace(backButtonRoute)
+                : history.goBack()
             }
           >
             <BackArrowIcon style={{ fill: emotionTheme.appBarTextColor }} />

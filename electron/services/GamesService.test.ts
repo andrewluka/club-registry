@@ -371,3 +371,50 @@ test("GamesService#getAllGames", () => {
   expect(games.length).toBe(1);
   expect(games[0].name).toBe(name);
 });
+
+test("GamesService#createNotifierTriggers", () => {
+  const db = Database(":memory:");
+  const gamesService = new GamesService(db);
+
+  let x = 0;
+
+  const inc = () => (x += 1);
+
+  gamesService.createNotifierTriggers(inc);
+
+  const game_id = gamesService.addGame({ name: "name" });
+  expect(x).toBe(1);
+
+  db.prepare("UPDATE games SET name = ?").run("lol");
+  expect(x).toBe(2);
+
+  gamesService.removeGame(game_id);
+  expect(x).toBe(3);
+});
+
+test("GamesService#updateGameName", () => {
+  const db = Database(":memory:");
+  const gamesService = new GamesService(db);
+
+  const game_id = gamesService.addGame({ name: "random name here" });
+  const newName = "new name";
+
+  gamesService.updateGameName({ game_id, newName });
+
+  expect(gamesService.getGame(game_id).name).toBe(newName);
+});
+
+test("GamesService#updateGameName throws when game doesn't exist", () => {
+  const db = Database(":memory:");
+  const gamesService = new GamesService(db);
+
+  let e: any;
+
+  try {
+    gamesService.updateGameName({ game_id: 7, newName: "not there :(" });
+  } catch (e_) {
+    e = e_;
+  }
+
+  expect(e).toBeTruthy();
+});

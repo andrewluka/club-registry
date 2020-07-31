@@ -3,22 +3,22 @@ import { useDismissableSnackbar } from "./useDismissableSnackbar";
 
 interface Options {
   originalSnackbarOptions?: OptionsObject;
-  errorMessage?: string;
+  successMessage?: string;
 }
 
-export type ErrorSnackbarEnqueuer = (options?: Options) => void;
+export type SuccessSnackbarEnqueuer = (options?: Options) => void;
 
-export const useErrorSnackbar = () => {
+export const useSuccessSnackbar = () => {
   const { enqueueDismissableSnackbar } = useDismissableSnackbar();
 
-  const enqueueErrorSnackbar: ErrorSnackbarEnqueuer = (options?: Options) =>
+  const enqueueSuccessSnackbar: SuccessSnackbarEnqueuer = (options?: Options) =>
     enqueueDismissableSnackbar({
-      message: options?.errorMessage || "Can't do that",
+      message: options?.successMessage || "Done!",
       originalSnackbarOptions: {
         ...(options?.originalSnackbarOptions || {}),
-        variant: "error",
+        variant: "success",
       },
     });
 
-  return { enqueueErrorSnackbar };
+  return { enqueueSuccessSnackbar };
 };

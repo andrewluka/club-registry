@@ -103,4 +103,44 @@ has a game`);
   userExists = (user_id: UserID): boolean => !!this.getUser(user_id);
 
   getAllUsers = (): User[] => this.db.prepare("SELECT * FROM users").all();
+
+  private _createNotifierTrigger = ({
+    on,
+    onTrigger,
+    onTriggerArgs,
+  }: {
+    on: "update" | "insert" | "delete";
+    onTrigger: (...params: any[]) => any;
+    onTriggerArgs: any[];
+  }) => {
+    this.db
+      .transaction(() => {
+        const funcName =
+          onTrigger.name || "a" + Math.random().toString().replace(".", "");
+
+        this.db.function(funcName, onTrigger);
+
+        this.db
+          .prepare(
+            `
+            CREATE TRIGGER IF NOT EXISTS on_${on}_trigger_users
+              AFTER ${on} ON users 
+            BEGIN
+              SELECT ${funcName}(${onTriggerArgs.map(() => "?").join(",")});
+            END
+            `
+          )
+          .run(...onTriggerArgs);
+      })
+      .default();
+  };
+
+  createNotifierTriggers = (
+    onTrigger: (...params: any[]) => any,
+    ...onTriggerArgs: any[]
+  ) => {
+    this._createNotifierTrigger({ on: "insert", onTrigger, onTriggerArgs });
+    this._createNotifierTrigger({ on: "update", onTrigger, onTriggerArgs });
+    this._createNotifierTrigger({ on: "delete", onTrigger, onTriggerArgs });
+  };
 }

@@ -8,22 +8,31 @@ import { Button } from "@material-ui/core";
 import QRCode from "qrcode.react";
 import { addGame } from "../services/tablesServices";
 import { useErrorSnackbar } from "../hooks/useErrorSnackbar";
+import { useSuccessSnackbar } from "../hooks/useSuccessSnackbar";
 import { Routes } from "../routes";
+import { useHistory } from "react-router-dom";
 
+// TODO add QR code generator on submit
 export const AddGame = () => {
+  const history = useHistory();
   const { enqueueErrorSnackbar } = useErrorSnackbar();
+  const { enqueueSuccessSnackbar } = useSuccessSnackbar();
   const [gameName, setGameName] = useState("");
   const [game_id, set_game_id] = useState<null | number>(null);
 
   const onSubmit = () => {
-    if (!gameName.trim())
+    if (!gameName.trim()) {
       enqueueErrorSnackbar({ errorMessage: "Invalid game name" });
+      return;
+    }
 
     const game_id = addGame({ name: gameName });
 
     if (game_id === false) enqueueErrorSnackbar();
     else {
       set_game_id(game_id);
+      history.replace(Routes.GAMES);
+      enqueueSuccessSnackbar();
     }
   };
 

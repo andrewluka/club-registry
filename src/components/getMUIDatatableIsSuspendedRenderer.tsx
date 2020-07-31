@@ -1,8 +1,9 @@
 /** @jsx jsx */
 import { jsx } from "@emotion/core";
-import { MUIDataTableMeta } from "mui-datatables";
+import { MUIDatatableRenderer } from "../../typings/muiDatatable";
 import { Checkbox } from "@material-ui/core";
 import { ErrorSnackbarEnqueuer } from "../hooks/useErrorSnackbar";
+import { SuccessSnackbarEnqueuer } from "../hooks/useSuccessSnackbar";
 
 interface Options {
   unsuspend: (id: number) => boolean;
@@ -17,10 +18,10 @@ export const getMUIDatatableIsSuspendedRenderer = ({
   enqueueErrorSnackbar,
   idIndex = 0,
 }: Options) => {
-  const MUIDatatableIsSuspendedRenderer = (
-    value: boolean,
-    tableMeta: MUIDataTableMeta,
-    updateValue: (value: string) => void
+  const MUIDatatableIsSuspendedRenderer: MUIDatatableRenderer<boolean> = (
+    value,
+    tableMeta,
+    updateValue
   ) => {
     return (
       <Checkbox

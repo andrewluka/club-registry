@@ -8,7 +8,7 @@ interface Props {
   onCloseButtonClicked?: () => void;
 }
 
-export const ErrorSnackbarContent: FC<Props> = ({
+export const SnackbarContent: FC<Props> = ({
   onCloseButtonClicked,
   children,
 }) => {
@@ -23,10 +23,10 @@ export const ErrorSnackbarContent: FC<Props> = ({
         maxHeight: 30,
       }}
     >
-      {children ?? "Can't do that"}
+      {children}
       {onCloseButtonClicked && (
         <IconButton onClick={() => onCloseButtonClicked()}>
-          <CloseIcon />
+          <CloseIcon css={{ fill: "white" }} />
         </IconButton>
       )}
     </div>

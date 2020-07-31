@@ -5,17 +5,18 @@ import { ThemeProvider, createMuiTheme } from "@material-ui/core/styles";
 import { FC, useState } from "react";
 import { useTheme as useEmotionTheme } from "emotion-theming";
 import { Theme } from "../../typings/theme";
-import ScanQRIcon from "@material-ui/icons/PhotoCamera";
+import { QRCodeIcon } from "./QRCodeIcon";
 import QrReader from "react-qr-reader";
 
 interface Props {
   defaultValue?: string;
   value?: string;
   onChange?: (newVal: string) => void;
-  error?: boolean;
+  erroPhotoCamerar?: boolean;
   label?: string;
   helperText?: string;
   qrVideoScanningEnabled?: boolean;
+  error?: boolean;
 }
 
 export const QRScannerTextField: FC<Props> = ({
@@ -110,18 +111,20 @@ export const QRScannerTextField: FC<Props> = ({
           onChange={(evt) => onChange?.(evt.target.value)}
           error={error}
         />
-        <IconButton
-          color="primary"
-          css={{
-            opacity: beforeOpacity,
-            ":hover": {
-              opacity: afterOpacity,
-            },
-          }}
-          onClick={() => setIsQrScanVideoOpen(true)}
-        >
-          <ScanQRIcon color="primary" />
-        </IconButton>
+        {qrVideoScanningEnabled && (
+          <IconButton
+            color="primary"
+            css={{
+              opacity: beforeOpacity,
+              ":hover": {
+                opacity: afterOpacity,
+              },
+            }}
+            onClick={() => setIsQrScanVideoOpen(true)}
+          >
+            <QRCodeIcon color="primary" />
+          </IconButton>
+        )}
       </div>
     </ThemeProvider>
   );

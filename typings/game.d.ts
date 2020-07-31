@@ -11,3 +11,8 @@ export interface AddGameOptions {
   name: string;
   is_suspended?: boolean;
 }
+
+export interface UpdateGameNameOptions {
+  game_id: GameID;
+  newName: string;
+}

@@ -12,9 +12,28 @@ import { AddGameOptions } from "../typings/game";
 //   REACT_DEVELOPER_TOOLS,
 // } from "electron-devtools-installer";
 
-const registerIpcGetter = (channel: string, valueGetter: Function) =>
-  ipcMain.on(channel, (evt) => {
-    evt.returnValue = valueGetter();
+const registerIpcGetter = <T extends any[]>(
+  channel: string,
+  getter: (...args: T) => any
+) =>
+  ipcMain.on(channel, (evt, ...args) => {
+    evt.returnValue = getter(...(args as T));
+  });
+
+// updateGameName
+
+const registerIpcSetter = <T extends any[]>(
+  channel: string,
+  setter: (...args: T) => void
+) =>
+  ipcMain.on(channel, (evt, ...args) => {
+    try {
+      setter(...(args as T));
+      evt.returnValue = true;
+    } catch (e) {
+      console.log(e);
+      evt.returnValue = false;
+    }
   });
 
 const getAppDataDir = () => {
@@ -35,7 +54,15 @@ const tablesService = new TablesService(db);
 const usersService = new UsersService(db);
 const gamesService = new GamesService(db);
 
-gamesService.addGame({ name: "testing" });
+const onGamesChanged = () => {
+  win?.webContents.send("games_changed");
+};
+const onUsersChanged = () => {
+  win?.webContents.send("users_changed");
+};
+
+usersService.createNotifierTriggers(onUsersChanged);
+gamesService.createNotifierTriggers(onGamesChanged);
 
 const settingsService = new SettingsService<Settings>(
   join(getAppDataDir(), "settings.json")
@@ -45,42 +72,13 @@ registerIpcGetter("getSettings", settingsService.getSettings);
 registerIpcGetter("getBorrowersAndGames", tablesService.getBorrowersAndGames);
 registerIpcGetter("getAllUsers", usersService.getAllUsers);
 registerIpcGetter("getAllGames", gamesService.getAllGames);
+registerIpcGetter("getGame", gamesService.getGame);
 
-ipcMain.on("suspendGame", (evt, game_id) => {
-  try {
-    gamesService.suspendGame(game_id);
-    evt.returnValue = true;
-  } catch (e) {
-    evt.returnValue = false;
-  }
-});
-
-ipcMain.on("unsuspendGame", (evt, game_id) => {
-  try {
-    gamesService.unsuspendGame(game_id);
-    evt.returnValue = true;
-  } catch (e) {
-    evt.returnValue = false;
-  }
-});
-
-ipcMain.on("removeGame", (evt, game_id) => {
-  try {
-    gamesService.removeGame(game_id);
-    evt.returnValue = true;
-  } catch (e) {
-    console.log(e);
-    evt.returnValue = false;
-  }
-});
-
-ipcMain.on("addGame", (evt, options: AddGameOptions) => {
-  try {
-    evt.returnValue = gamesService.addGame(options);
-  } catch (e) {
-    evt.returnValue = false;
-  }
-});
+registerIpcSetter("suspendGame", gamesService.suspendGame);
+registerIpcSetter("unsuspendGame", gamesService.unsuspendGame);
+registerIpcSetter("removeGame", gamesService.removeGame);
+registerIpcSetter("addGame", gamesService.addGame);
+registerIpcSetter("updateGameName", gamesService.updateGameName);
 
 function createWindow() {
   win = new BrowserWindow({
