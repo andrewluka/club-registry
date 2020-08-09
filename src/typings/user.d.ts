@@ -7,6 +7,7 @@ export interface User {
   phone_number?: string | null;
   is_suspended: 0 | 1;
   borrowing?: number | null;
+  date_of_addition: number;
 }
 
 export interface AddUserOptions {

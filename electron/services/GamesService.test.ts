@@ -25,6 +25,7 @@ test("GamesService#addGame", () => {
   expect(tags?.length).toBe(1);
   expect(game_id).toBeGreaterThanOrEqual(0);
   expect(Number(game?.game_id)).toBe(game_id);
+  expect(typeof game?.date_of_addition).toBe("number");
 });
 
 test("GamesService#getGame", () => {
@@ -43,8 +44,7 @@ test("GamesService#removeGame removes game", () => {
   const db = Database(":memory:");
   const gamesService = new GamesService(db);
 
-  const game_id = db.prepare("INSERT INTO games (name) VALUES (?)").run("rando")
-    .lastInsertRowid;
+  const game_id = gamesService.addGame({ name: "name" });
 
   gamesService.removeGame(Number(game_id));
 
@@ -127,10 +127,7 @@ test("GamesService#gameExists", () => {
   const db = Database(":memory:");
   const gamesService = new GamesService(db);
 
-  const game_id = Number(
-    db.prepare("INSERT INTO games (name) VALUES ('game name')").run()
-      .lastInsertRowid
-  );
+  const game_id = gamesService.addGame({ name: "random name" });
 
   expect(gamesService.gameExists(game_id)).toBe(true);
   expect(gamesService.gameExists(645)).toBe(false);
@@ -140,12 +137,7 @@ test("GamesService#suspendGame suspends game", () => {
   const db = Database(":memory:");
   const gamesService = new GamesService(db);
 
-  const game_id = Number(
-    db
-      .prepare("INSERT INTO games (name, is_suspended) VALUES (?,?)")
-      .run("game name", 0).lastInsertRowid
-  );
-
+  const game_id = gamesService.addGame({ name: "random name" });
   gamesService.suspendGame(game_id);
 
   const game: Game | undefined = db
@@ -184,12 +176,9 @@ test("GamesService#unsuspendGame unsuspends game", () => {
 
   expect(e).toBeTruthy();
 
-  const game_id = Number(
-    db
-      .prepare("INSERT INTO games (name, is_suspended) VALUES (?,?)")
-      .run("game name", 1).lastInsertRowid
-  );
+  const game_id = gamesService.addGame({ name: "name" });
 
+  gamesService.suspendGame(game_id);
   gamesService.unsuspendGame(game_id);
 
   const { is_suspended } = db

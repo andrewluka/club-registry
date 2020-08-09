@@ -26,8 +26,8 @@ export default class UsersService {
   }: AddUserOptions): UserID => {
     const addUserStatement = this.db.prepare(
       `
-      INSERT INTO users (name, date_of_birth, phone_number) 
-        VALUES (@name, @date_of_birth, @phone_number)
+      INSERT INTO users (name, date_of_birth, phone_number, date_of_addition) 
+        VALUES (@name, @date_of_birth, @phone_number, @date_of_addition)
       `
     );
 
@@ -35,6 +35,7 @@ export default class UsersService {
       name,
       date_of_birth,
       phone_number,
+      date_of_addition: Date.now(),
     }).lastInsertRowid;
 
     return Number(user_id);

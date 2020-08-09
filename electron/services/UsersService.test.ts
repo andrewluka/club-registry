@@ -19,6 +19,7 @@ test("UsersService#addUser adds user", () => {
   expect(user?.phone_number).toBe(phone_number);
   expect(user_id).toBeGreaterThanOrEqual(0);
   expect(Number(user?.user_id)).toBe(user_id);
+  expect(typeof user?.date_of_addition).toBe("number");
 });
 
 test("UsersService#getUser gets user", () => {
@@ -159,12 +160,9 @@ test("UsersService#unsuspendUser unsuspends user", () => {
   const db = Database(":memory:");
   const usersService = new UsersService(db);
 
-  const user_id = Number(
-    db
-      .prepare("INSERT INTO users (name, is_suspended) VALUES (?,?)")
-      .run("game name", 1).lastInsertRowid
-  );
+  const user_id = usersService.addUser({ name: "m" });
 
+  usersService.suspendUser(user_id);
   usersService.unsuspendUser(user_id);
 
   const { is_suspended } = usersService.getUser(user_id) || {};

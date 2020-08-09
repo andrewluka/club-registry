@@ -9,6 +9,7 @@ export interface Game {
   borrowing?: number;
   // only allow alphanumeric characters and space, delimited by semicolon
   tags?: string | null;
+  date_of_addition: number;
 }
 
 export interface AddGameOptions {

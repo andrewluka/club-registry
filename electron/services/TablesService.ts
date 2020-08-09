@@ -22,6 +22,7 @@ export default class TablesService {
         CREATE TABLE IF NOT EXISTS users (
           user_id INTEGER NOT NULL PRIMARY KEY,
           name TEXT NOT NULL,
+          date_of_addition INTEGER NOT NULL,
           date_of_birth INTEGER,
           phone_number VARCHAR(100),
           is_suspended INT NOT NULL DEFAULT 0 
@@ -32,7 +33,7 @@ export default class TablesService {
             ),
           borrowing INTEGER,
           FOREIGN KEY (borrowing)
-            REFERENCES borrowings (borrowing_id)  
+            REFERENCES borrowings (borrowing_id)
         )
         `
       )
@@ -46,6 +47,7 @@ export default class TablesService {
         CREATE TABLE IF NOT EXISTS games (
           game_id INTEGER NOT NULL PRIMARY KEY,
           name TEXT NOT NULL,
+          date_of_addition INTEGER NOT NULL,
           tags TEXT,
           is_suspended INT NOT NULL DEFAULT 0
             CHECK(

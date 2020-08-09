@@ -31,14 +31,15 @@ export default class GamesService {
     tags = [...new Set(tags)];
 
     const addGameStatement = this.db.prepare(
-      `INSERT INTO games (name, is_suspended, tags) 
-        VALUES (@name, @is_suspended, @tags)`
+      `INSERT INTO games (name, is_suspended, tags, date_of_addition) 
+        VALUES (@name, @is_suspended, @tags, @date_of_addition)`
     );
 
     const game_id = addGameStatement.run({
       name,
       is_suspended: Number(is_suspended) as any,
       tags: tags.join(GAMES_TAGS_DELIMITER) || null,
+      date_of_addition: Date.now(),
     }).lastInsertRowid;
 
     return Number(game_id);
