@@ -2,33 +2,35 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import { join } from "path";
 import * as isDev from "electron-is-dev";
 import SettingsService from "./services/SettingsService";
-import { Settings } from "../typings/settings";
+import { Settings } from "../src/typings/settings";
 import Database from "better-sqlite3";
 import TablesService from "./services/TablesService";
 import UsersService from "./services/UsersService";
 import GamesService from "./services/GamesService";
-import { AddGameOptions } from "../typings/game";
+import {
+  GAMES_CHANGED_CHANNEL,
+  USERS_CHANGED_CHANNEL,
+} from "../src/constants/tables";
+
 // import installExtension, {
 //   REACT_DEVELOPER_TOOLS,
 // } from "electron-devtools-installer";
 
-const registerIpcGetter = <T extends any[]>(
+const registerIpcGetter = <FnParams extends any[], FnReturnType>(
   channel: string,
-  getter: (...args: T) => any
+  getter: (...args: FnParams) => FnReturnType
 ) =>
   ipcMain.on(channel, (evt, ...args) => {
-    evt.returnValue = getter(...(args as T));
+    evt.returnValue = getter(...(args as FnParams));
   });
 
-// updateGameName
-
-const registerIpcSetter = <T extends any[]>(
+const registerIpcSetter = <FnParams extends any[]>(
   channel: string,
-  setter: (...args: T) => void
+  setter: (...args: FnParams) => void
 ) =>
   ipcMain.on(channel, (evt, ...args) => {
     try {
-      setter(...(args as T));
+      setter(...(args as FnParams));
       evt.returnValue = true;
     } catch (e) {
       console.log(e);
@@ -55,10 +57,10 @@ const usersService = new UsersService(db);
 const gamesService = new GamesService(db);
 
 const onGamesChanged = () => {
-  win?.webContents.send("games_changed");
+  win?.webContents.send(GAMES_CHANGED_CHANNEL);
 };
 const onUsersChanged = () => {
-  win?.webContents.send("users_changed");
+  win?.webContents.send(USERS_CHANGED_CHANNEL);
 };
 
 usersService.createNotifierTriggers(onUsersChanged);
@@ -73,12 +75,23 @@ registerIpcGetter("getBorrowersAndGames", tablesService.getBorrowersAndGames);
 registerIpcGetter("getAllUsers", usersService.getAllUsers);
 registerIpcGetter("getAllGames", gamesService.getAllGames);
 registerIpcGetter("getGame", gamesService.getGame);
+registerIpcGetter("getUser", usersService.getUser);
+registerIpcGetter("getGameTypes", gamesService.getAllGameTags);
+registerIpcGetter("getAllGameTags", gamesService.getAllGameTags);
 
 registerIpcSetter("suspendGame", gamesService.suspendGame);
 registerIpcSetter("unsuspendGame", gamesService.unsuspendGame);
 registerIpcSetter("removeGame", gamesService.removeGame);
 registerIpcSetter("addGame", gamesService.addGame);
 registerIpcSetter("updateGameName", gamesService.updateGameName);
+registerIpcSetter("borrowGame", gamesService.borrowGame);
+registerIpcSetter("removeUser", usersService.removeUser);
+registerIpcSetter("updateUserName", usersService.updateUserName);
+registerIpcSetter("suspendUser", usersService.suspendUser);
+registerIpcSetter("unsuspendUser", usersService.unsuspendUser);
+registerIpcSetter("returnGame", gamesService.returnGame);
+registerIpcSetter("addUser", usersService.addUser);
+registerIpcSetter("updateGameTags", gamesService.updateGameTags);
 
 function createWindow() {
   win = new BrowserWindow({
@@ -86,10 +99,11 @@ function createWindow() {
     height: 600,
     webPreferences: {
       nodeIntegration: true,
+      enableRemoteModule: true,
     },
   });
 
-  isDev ? "" : win.setMenu(null);
+  win.setMenu(null);
 
   win.loadURL(
     isDev
@@ -102,11 +116,19 @@ function createWindow() {
   // Hot Reloading
   if (isDev) {
     // 'node_modules/.bin/electronPath'
-    require("electron-reload")(__dirname, {
-      electron: join(__dirname, "..", "..", "node_modules", ".bin", "electron"),
-      forceHardReset: true,
-      hardResetMethod: "exit",
-    });
+    require("electron-reload")(
+      __dirname
+      //    ,{
+      //   electron: join(
+      //     __dirname,
+      //     `../node_modules/.bin/electron${
+      //       process.platform === "win32" ? ".cmd" : ""
+      //     }`
+      //   ),
+      //   forceHardReset: true,
+      //   hardResetMethod: "exit",
+      // }
+    );
   }
 
   // // DevTools

@@ -1,22 +1,28 @@
 import Database from "better-sqlite3";
 import GamesService from "./GamesService";
-import { Game } from "../../typings/game";
+import { Game } from "../../src/typings/game";
 import UsersService from "./UsersService";
+import { GAMES_TAGS_DELIMITER } from "../../src/constants/tables";
 
 test("GamesService#addGame", () => {
   const db = Database(":memory:");
   const gamesService = new GamesService(db);
 
   const name = "rando";
+  const tag = "hello";
 
-  const game_id = gamesService.addGame({ name });
+  const game_id = gamesService.addGame({ name, tags: [tag, tag] });
   const game: Game | undefined = db
     .prepare("SELECT * FROM games WHERE game_id = ?")
     .all(game_id)[0];
 
+  const tags = game?.tags?.split(GAMES_TAGS_DELIMITER);
+
   expect(game?.name).toBe(name);
   expect(game?.is_suspended).toBe(0);
-  expect(game?.user_with_the_game).toBe(null);
+  expect(game?.borrowing).toBe(null);
+  expect(tags?.[0]).toBe(tag);
+  expect(tags?.length).toBe(1);
   expect(game_id).toBeGreaterThanOrEqual(0);
   expect(Number(game?.game_id)).toBe(game_id);
 });
@@ -67,19 +73,14 @@ test("GamesService#removeGame throws when game does not exist", () => {
 test("GamesService#removeGame throws when game has been borrowed", () => {
   const db = Database(":memory:");
   const gamesService = new GamesService(db);
+  const usersService = new UsersService(db);
 
   let e: any;
 
-  const user_id = Number(
-    db.prepare("INSERT INTO users (name) VALUES (?)").run("user name")
-      .lastInsertRowid
-  );
+  const game_id = gamesService.addGame({ name: "name" });
+  const user_id = usersService.addUser({ name: "random name" });
 
-  const game_id = Number(
-    db
-      .prepare("INSERT INTO games (name, user_with_the_game) VALUES (?, ?)")
-      .run("game name", user_id).lastInsertRowid
-  );
+  gamesService.borrowGame({ borrower: user_id, game: game_id });
 
   try {
     gamesService.removeGame(game_id);
@@ -93,24 +94,16 @@ test("GamesService#removeGame throws when game has been borrowed", () => {
 test("GamesService#isGameBorrowed returns correct boolean value", () => {
   const db = Database(":memory:");
   const gamesService = new GamesService(db);
+  const usersService = new UsersService(db);
 
-  const user_id = Number(
-    db.prepare("INSERT INTO users (name) VALUES (?)").run("user name")
-      .lastInsertRowid
-  );
+  const game_id = gamesService.addGame({ name: "name" });
+  const user_id = usersService.addUser({ name: "random name" });
 
-  const game_id = Number(
-    db
-      .prepare("INSERT INTO games (name, user_with_the_game) VALUES (?, ?)")
-      .run("game name", user_id).lastInsertRowid
-  );
+  gamesService.borrowGame({ borrower: user_id, game: game_id });
 
   expect(gamesService.isGameBorrowed(game_id)).toBe(true);
 
-  const game_id2 = Number(
-    db.prepare("INSERT INTO games (name) VALUES (?)").run("game name")
-      .lastInsertRowid
-  );
+  const game_id2 = gamesService.addGame({ name: "name" });
 
   expect(gamesService.isGameBorrowed(game_id2)).toBe(false);
 });
@@ -266,15 +259,38 @@ been borrowed", () => {
   const user_id2 = usersService.addUser({ name: "name" });
   const game_id = gamesService.addGame({ name: "name" });
 
+  const borrowing = db
+    .prepare(
+      `
+    INSERT INTO borrowings (
+      borrower_id, 
+      game_id,
+      date_borrowed
+    ) VALUES (?, ?, ?)
+    `
+    )
+    .run(user_id1, game_id, Date.now()).lastInsertRowid;
+
   db.prepare(
     `
-    UPDATE games 
-      SET user_with_the_game = @borrower 
-      WHERE game_id = @game
+    UPDATE users 
+      SET borrowing = @borrowing 
+      WHERE user_id = @borrower
     `
   ).run({
     borrower: user_id1,
+    borrowing,
+  });
+
+  db.prepare(
+    `
+    UPDATE games 
+      SET borrowing = @borrowing 
+      WHERE game_id = @game
+    `
+  ).run({
     game: game_id,
+    borrowing,
   });
 
   let e: any;
@@ -298,15 +314,38 @@ borrowed a game", () => {
   const game_id1 = gamesService.addGame({ name: "name" });
   const game_id2 = gamesService.addGame({ name: "name" });
 
+  const borrowing = db
+    .prepare(
+      `
+    INSERT INTO borrowings (
+      borrower_id, 
+      game_id,
+      date_borrowed
+    ) VALUES (?, ?, ?)
+    `
+    )
+    .run(user_id, game_id1, Date.now()).lastInsertRowid;
+
   db.prepare(
     `
     UPDATE users 
-      SET game_taken = @game 
+      SET borrowing = @borrowing 
       WHERE user_id = @borrower
     `
   ).run({
     borrower: user_id,
+    borrowing,
+  });
+
+  db.prepare(
+    `
+    UPDATE games 
+      SET borrowing = @borrowing 
+      WHERE game_id = @game
+    `
+  ).run({
     game: game_id1,
+    borrowing,
   });
 
   let e: any;
@@ -401,7 +440,7 @@ test("GamesService#updateGameName", () => {
 
   gamesService.updateGameName({ game_id, newName });
 
-  expect(gamesService.getGame(game_id).name).toBe(newName);
+  expect(gamesService.getGame(game_id)?.name).toBe(newName);
 });
 
 test("GamesService#updateGameName throws when game doesn't exist", () => {
@@ -417,4 +456,56 @@ test("GamesService#updateGameName throws when game doesn't exist", () => {
   }
 
   expect(e).toBeTruthy();
+});
+
+test("GamesService#updateGameTags completely overrides old tags \
+and removes duplicates from new ones", () => {
+  const db = Database(":memory:");
+  const gamesService = new GamesService(db);
+
+  const game_id = gamesService.addGame({ name: "random name here" });
+
+  const tag = "hello";
+  const tags = [tag, tag, "meIsTag"];
+
+  gamesService.updateGameTags({ game_id, newTags: tags });
+
+  const game = gamesService.getGame(game_id);
+
+  const expectedTags = [...new Set(tags)];
+  const actualTags = game?.tags?.split(GAMES_TAGS_DELIMITER);
+
+  expect(actualTags?.length).toBe(2);
+  expect(actualTags).toEqual(expectedTags);
+});
+
+test("GamesService#updateGameTags throws when game \
+does not exist", () => {
+  const db = Database(":memory:");
+  const gamesService = new GamesService(db);
+
+  let e: any;
+
+  try {
+    gamesService.updateGameTags({ game_id: 87, newTags: [":("] });
+  } catch (e_) {
+    e = e_;
+  }
+
+  expect(e).toBeTruthy();
+});
+
+test("GamesService#getAllGameTags", () => {
+  const db = Database(":memory:");
+  const gamesService = new GamesService(db);
+
+  const tags1 = ["a", "b", "c"];
+  const tags2 = ["b", "d", "t", "v", "b"];
+
+  const allTags = [...new Set([...tags1, ...tags2])].sort();
+
+  gamesService.addGame({ name: "random name1", tags: tags1 });
+  gamesService.addGame({ name: "random name2", tags: tags2 });
+
+  expect(gamesService.getAllGameTags().sort()).toStrictEqual(allTags);
 });

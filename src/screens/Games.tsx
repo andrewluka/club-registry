@@ -1,12 +1,11 @@
 /** @jsx jsx */
-import { Fragment } from "react";
+import { Fragment, useState, CSSProperties } from "react";
 import { jsx } from "@emotion/core";
 import { AppBar } from "../components/AppBar";
 import { Drawer } from "../components/Drawer";
 import { TableWrapper } from "../components/TableWrapper";
-import MUIDataTable, { MUIDataTableColumnDef } from "mui-datatables";
 import { RedirectCornerFab } from "../components/RedirectCornerFab";
-import { Routes } from "../routes";
+import { Routes } from "../constants/routes";
 import AddIcon from "@material-ui/icons/Add";
 import {
   suspendGame,
@@ -14,61 +13,213 @@ import {
   removeGame,
   updateGameName,
   getGame,
-} from "../services/tablesServices";
+  updateGameTags,
+} from "../services/gamesServices";
 import { getMUIDatatableIsSuspendedRenderer } from "../components/getMUIDatatableIsSuspendedRenderer";
-import { useErrorSnackbar } from "../hooks/useErrorSnackbar";
-import { useSuccessSnackbar } from "../hooks/useSuccessSnackbar";
 import { useGames } from "../hooks/useGames";
 import { getMUIDatatableEditableRenderer } from "../components/getMUIDatatableEditableRenderer";
 import { getMUIDatatableQRCodeRenderer } from "../components/getMUIDatatableQRCodeRenderer";
-import { useTheme } from "emotion-theming";
-import { Theme } from "../../typings/theme";
-import { useDismissableSnackbar } from "../hooks/useDismissableSnackbar";
+import { DataTable, DataTableColumnDef } from "../components/DataTable";
+import { useQrCodeFilesGenerator } from "../hooks/useQrCodeFilesGenerator";
+import { GAMES_TAGS_DELIMITER } from "../constants/tables";
+import { useTheme } from "@material-ui/core/styles";
+import { Chip, Tooltip, IconButton } from "@material-ui/core";
+import { usePromptDialog } from "../hooks/usePromptDialog";
+import { Game, GameID } from "../typings/game";
+import { TagsAutoComplete } from "../components/TagsAutoComplete";
+import { useTags } from "../hooks/useTags";
 
 export const Games = () => {
-  const { enqueueErrorSnackbar } = useErrorSnackbar();
-  const { enqueueSuccessSnackbar } = useSuccessSnackbar();
-  const { enqueueDismissableSnackbar } = useDismissableSnackbar();
-  const theme = useTheme<Theme>();
-  const rows = useGames();
+  const theme = useTheme();
+  const { data: rows } = useGames();
+  const { generateQrCodes } = useQrCodeFilesGenerator();
+  const { prompt } = usePromptDialog();
+  const { data: options } = useTags();
 
-  const is_suspendedRenderer = getMUIDatatableIsSuspendedRenderer({
-    suspend: suspendGame,
-    unsuspend: unsuspendGame,
-    enqueueErrorSnackbar,
-  });
+  const gamesToLookupObj = (games: Game[]) => {
+    const map = new Map<number, boolean>();
 
-  const columns: MUIDataTableColumnDef[] = [
-    { name: "game_id", label: "ID" },
+    for (let i = 0; i < games.length; ++i) {
+      map.set(games[i].game_id, false);
+    }
+
+    return map;
+  };
+
+  const [chipsStates, setChipsStates] = useState(gamesToLookupObj(rows));
+
+  const is_suspendedFilterListRenderer = (value: any) =>
+    value ? "Suspended" : "Not Suspended";
+
+  const columns: DataTableColumnDef[] = [
+    {
+      name: "game_id",
+      label: "ID",
+      options: {
+        filter: false,
+      },
+    },
     {
       name: "name",
       label: "Name",
       options: {
         customBodyRender: getMUIDatatableEditableRenderer({
-          theme,
-          validateInput: () => true,
           update: ({ id, newValue }) =>
             updateGameName({ game_id: id, newName: newValue }),
-          get: (id) => getGame(id).name,
-          enqueueErrorSnackbar,
-          enqueueSuccessSnackbar,
+          get: (id) => getGame(id)?.name || "",
         }),
+        filter: false,
       },
     },
     {
       name: "is_suspended",
       label: "Suspended?",
-      options: { customBodyRender: is_suspendedRenderer },
+      options: {
+        customBodyRender: getMUIDatatableIsSuspendedRenderer({
+          suspend: suspendGame,
+          unsuspend: unsuspendGame,
+        }),
+        customFilterListOptions: {
+          render: is_suspendedFilterListRenderer,
+        },
+        filterOptions: {
+          renderValue: is_suspendedFilterListRenderer,
+        },
+      },
+    },
+    {
+      name: "tags",
+      label: "Tags",
+      options: {
+        filter: false,
+        customBodyRender: (
+          tagsString: string | null,
+          tableMeta,
+          updateValue
+        ) => {
+          const game_id: GameID = tableMeta.rowData[0];
+          const tags =
+            tagsString?.split(GAMES_TAGS_DELIMITER).filter(Boolean) || [];
+
+          const updateTags = (newTags: string[]) => {
+            updateGameTags({
+              game_id,
+              newTags,
+            });
+            updateValue(newTags.join(GAMES_TAGS_DELIMITER));
+          };
+
+          const AddTagButton = () => {
+            return (
+              <Tooltip title="Add tag">
+                <IconButton
+                  onClick={async () => {
+                    const newTags = await prompt<string[]>({
+                      title: "Add a new Tag?",
+                      content: "",
+                      InputComponent: ({ onChange, value }) => {
+                        const tagIsNotAlreadyThere = (tag: string) =>
+                          !tags.includes(tag);
+
+                        const handleOnChange = (_: any, tags: string[]) => {
+                          onChange(tags.filter(tagIsNotAlreadyThere));
+                        };
+
+                        return (
+                          <TagsAutoComplete
+                            onChange={handleOnChange}
+                            onAdd={handleOnChange}
+                            selectedTags={value || []}
+                            options={options.filter(tagIsNotAlreadyThere)}
+                          />
+                        );
+                      },
+                    });
+
+                    if (!newTags) return;
+
+                    updateTags([...tags, ...newTags]);
+                  }}
+                  size="small"
+                >
+                  <AddIcon />
+                </IconButton>
+              </Tooltip>
+            );
+          };
+
+          const TagChip = ({ label }: { label: string }) => (
+            <Chip
+              onDelete={() => {
+                const newTags = tags.filter((tag) => tag !== label);
+                updateTags(newTags);
+              }}
+              css={{ margin: 1 }}
+              label={label}
+            />
+          );
+
+          const TagsComponent = () => {
+            if (tags.length <= 0) return <AddTagButton />;
+
+            return chipsStates.get(game_id) ? (
+              <Fragment>
+                {tags.map((tag) => (
+                  <TagChip key={tag} label={tag} />
+                ))}
+                <AddTagButton />
+              </Fragment>
+            ) : (
+              <Fragment>
+                <TagChip label={tags[0]} />
+                {tags.length > 1 ? (
+                  <span
+                    onClick={() => {
+                      const newState = new Map(chipsStates);
+                      newState.set(game_id, true);
+
+                      setChipsStates(newState);
+                    }}
+                    css={{ cursor: "pointer" }}
+                  >
+                    {" +"}
+                    {String(tags.length - 1)}
+                  </span>
+                ) : (
+                  <AddTagButton />
+                )}
+              </Fragment>
+            );
+          };
+
+          return <TagsComponent />;
+        },
+      },
     },
     {
       name: "game_id",
-      label: " ",
+      label: "Generate & Download all QR Codes",
       options: {
         filter: false,
         sort: false,
-        customBodyRender: getMUIDatatableQRCodeRenderer({
-          enqueueDismissableSnackbar,
+        print: false,
+        download: false,
+        // viewColumns: false,
+        setCellHeaderProps: () => ({
+          onClick: async () => {
+            await generateQrCodes({
+              values: rows.map(({ game_id, name }) => ({
+                data: String(game_id),
+                nickname: name,
+              })),
+            });
+          },
+          style: {
+            color: theme.palette.primary.main,
+            cursor: "pointer",
+          },
         }),
+        customBodyRender: getMUIDatatableQRCodeRenderer(),
       },
     },
   ];
@@ -78,24 +229,12 @@ export const Games = () => {
       <AppBar title="Games" />
       <Drawer />
       <TableWrapper>
-        <MUIDataTable
-          options={{
-            selectableRows: "single",
-            onRowsDelete: ({ data: rowsToDelete }) => {
-              const game_id = rows[rowsToDelete[0].index].game_id;
-              const isDeleteSuccessful = removeGame(game_id);
-
-              if (!isDeleteSuccessful) {
-                enqueueErrorSnackbar();
-                return false;
-              } else {
-                enqueueSuccessSnackbar();
-              }
-            },
-          }}
+        <DataTable
+          remove={removeGame}
+          getRowId={({ game_id }) => game_id}
           title="Games"
           columns={columns}
-          data={rows}
+          rows={rows}
         />
       </TableWrapper>
       <RedirectCornerFab

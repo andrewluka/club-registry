@@ -4,42 +4,43 @@ import "typeface-roboto";
 import "./index.css";
 import App from "./App";
 import * as serviceWorker from "./serviceWorker";
-import { ThemeProvider as EmotionProvider } from "emotion-theming";
 import { getSettings } from "./services/settingsServices";
 import { defaultLightTheme } from "./themes/defaultLightTheme";
 import {
   StylesProvider,
-  ThemeProvider as MuiProvider,
+  ThemeProvider,
   createMuiTheme,
 } from "@material-ui/core/styles";
 import { SnackbarProvider } from "notistack";
+import { MuiPickersUtilsProvider } from "@material-ui/pickers";
+import MomentUtils from "@date-io/moment";
 
-const theme = getSettings()?.theme || defaultLightTheme;
+const themeOptions = getSettings()?.theme || defaultLightTheme;
+
+const muiTheme = createMuiTheme({
+  overrides: {
+    MuiTooltip: { tooltip: { fontSize: 12, fontWeight: 300 } },
+    MuiTableFooter: {
+      root: {
+        "& div": {
+          justifyContent: "flex-start",
+        },
+      },
+    },
+  },
+  ...themeOptions,
+});
 
 ReactDOM.render(
-  <StylesProvider injectFirst>
-    <MuiProvider
-      theme={createMuiTheme({
-        palette: {
-          primary: { main: theme.primaryColor },
-          secondary: { main: theme.secondaryColor },
-          text: {
-            primary: theme.primaryTextColor,
-            secondary: theme.secondaryTextColor,
-          },
-        },
-        overrides: {
-          MuiTooltip: { tooltip: { fontSize: 12, fontWeight: 300 } },
-        },
-      })}
-    >
-      <EmotionProvider theme={theme}>
+  <MuiPickersUtilsProvider utils={MomentUtils}>
+    <StylesProvider injectFirst>
+      <ThemeProvider theme={muiTheme}>
         <SnackbarProvider maxSnack={3}>
           <App />
         </SnackbarProvider>
-      </EmotionProvider>
-    </MuiProvider>
-  </StylesProvider>,
+      </ThemeProvider>
+    </StylesProvider>
+  </MuiPickersUtilsProvider>,
   document.getElementById("root")
 );
 

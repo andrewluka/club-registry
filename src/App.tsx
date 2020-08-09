@@ -5,13 +5,14 @@ import { Home } from "./screens/Home";
 import { Users } from "./screens/Users";
 import { Games } from "./screens/Games";
 import { AddGame } from "./screens/AddGame";
-import { Routes } from "./routes";
-import { useTheme } from "emotion-theming";
-import { Theme } from "../typings/theme";
+import { Routes } from "./constants/routes";
 import { BorrowGame } from "./screens/BorrowGame";
+import { ReturnGame } from "./screens/ReturnGame";
+import { AddUser } from "./screens/AddUser";
+import { useTheme } from "@material-ui/core/styles";
 
 const App: React.FC = () => {
-  const theme = useTheme<Theme>();
+  const theme = useTheme();
 
   return (
     <HashRouter>
@@ -24,8 +25,6 @@ const App: React.FC = () => {
           flexDirection: "column",
           alignItems: "stretch",
           justifyContent: "stretch",
-          // alignItems: "center",
-          // justifyContent: "center",
         }}
       >
         <div
@@ -36,7 +35,7 @@ const App: React.FC = () => {
             position: "fixed",
             top: 0,
             left: 0,
-            backgroundColor: theme.backgroundColor,
+            backgroundColor: theme.palette.background.default,
           }}
         ></div>
 
@@ -45,6 +44,8 @@ const App: React.FC = () => {
           <Route path={Routes.GAMES} component={Games} />
           <Route path={Routes.BORROW_GAME} component={BorrowGame} />
           <Route path={Routes.ADD_GAME} component={AddGame} />
+          <Route path={Routes.ADD_USER} component={AddUser} />
+          <Route path={Routes.RETURN_GAME_BASE} component={ReturnGame} />
           <Route path={Routes.HOME} component={Home} />
         </Switch>
       </div>

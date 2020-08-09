@@ -1,68 +1,60 @@
 /** @jsx jsx */
 import { jsx } from "@emotion/core";
-import { InputBase } from "@material-ui/core";
-import { withStyles } from "@material-ui/core/styles";
-import { MUIDatatableRenderer } from "../../typings/muiDatatable";
-import { Theme } from "../../typings/theme";
-import { defaultLightTheme } from "../themes/defaultLightTheme";
-import { ErrorSnackbarEnqueuer } from "../hooks/useErrorSnackbar";
-import { SuccessSnackbarEnqueuer } from "../hooks/useSuccessSnackbar";
+import { TextField } from "@material-ui/core";
+import { MUIDatatableRenderer } from "../typings/muiDatatable";
+import { useErrorSnackbar } from "../hooks/useErrorSnackbar";
+import { useSuccessSnackbar } from "../hooks/useSuccessSnackbar";
+import { useState } from "react";
+import { MUIDataTableMeta } from "mui-datatables";
 
 interface Options {
-  theme?: Theme;
-  validateInput: (newValue: string) => boolean;
+  validateInput?: (newValue: string) => boolean;
   update: (options: { id: number; newValue: string }) => boolean;
   get: (id: number) => string;
-  enqueueErrorSnackbar: ErrorSnackbarEnqueuer;
-  enqueueSuccessSnackbar: SuccessSnackbarEnqueuer;
   idIndex?: number;
 }
 
 export const getMUIDatatableEditableRenderer = function ({
-  validateInput,
-  theme = defaultLightTheme,
+  validateInput = (input) => !!input.trim(),
   idIndex = 0,
-  enqueueErrorSnackbar,
-  enqueueSuccessSnackbar,
   update,
   get,
 }: Options) {
-  const { primaryColor, primaryTextColor } = theme;
+  interface Props<T> {
+    value: T;
+    tableMeta: MUIDataTableMeta;
+    updateValue: (value: string) => void;
+  }
 
-  const Input = withStyles({
-    root: {
-      "& input": {
-        marginLeft: 2,
-      },
-      opacity: 0.7,
-      borderStyle: "solid",
-      borderColor: primaryColor,
-      borderWidth: 2,
-      borderRadius: 3,
-      color: primaryTextColor,
-    },
-    focused: {
-      opacity: 1,
-    },
-  })(InputBase);
+  // const theme = useTheme<Theme>();
 
-  const MUIDatatableEditableRenderer: MUIDatatableRenderer<string> = (
+  // const { primaryColor, primaryTextColor } = theme;
+
+  const InputComponent = <T extends any>({
     value,
     tableMeta,
-    updateValue
-  ) => {
+    updateValue,
+  }: Props<T>) => {
+    const [isError, setIsError] = useState(false);
+    const { enqueueErrorSnackbar } = useErrorSnackbar();
+    const { enqueueSuccessSnackbar } = useSuccessSnackbar();
+
     return (
-      <Input
+      <TextField
+        color="primary"
+        // classes={classes}
+        error={isError}
         type="text"
         value={value}
         onChange={(event) => {
           const newValue = event.target.value;
 
           if (!validateInput(newValue)) {
-            enqueueErrorSnackbar({ errorMessage: "Invalid input" });
+            setIsError(true);
             return;
           }
 
+          setIsError(false);
           updateValue(newValue);
         }}
         onBlur={(event) => {
@@ -79,6 +71,20 @@ export const getMUIDatatableEditableRenderer = function ({
             enqueueSuccessSnackbar();
           }
         }}
+      />
+    );
+  };
+
+  const MUIDatatableEditableRenderer: MUIDatatableRenderer<string> = (
+    value,
+    tableMeta,
+    updateValue
+  ) => {
+    return (
+      <InputComponent
+        value={value}
+        tableMeta={tableMeta}
+        updateValue={updateValue}
       />
     );
   };

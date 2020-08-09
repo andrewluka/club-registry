@@ -1,21 +1,20 @@
 /** @jsx jsx */
 import { jsx } from "@emotion/core";
-import { useTheme } from "emotion-theming";
-import { Theme } from "../../typings/theme";
-import { Props } from "react";
+import { FC } from "react";
+import { DRAWER_WIDTH, APP_BAR_HEIGHT } from "../constants/ui";
 
-export const TableWrapper = ({ children }: Props<{}>) => {
-  const theme = useTheme<Theme>();
+export const TableWrapper: FC = ({ children }) => {
   const contentOffset = 20;
 
   return (
     <div
       css={{
-        width: `calc(100vw - ${theme.drawerWidth + contentOffset * 2}px)`,
-        height: `calc(100vh - ${theme.appBarHeight + contentOffset * 2}px)`,
+        width: `calc(100vw - ${DRAWER_WIDTH + contentOffset * 2}px)`,
+        height: `calc(100vh - ${APP_BAR_HEIGHT + contentOffset * 2}px)`,
         position: "relative",
-        left: theme.drawerWidth + contentOffset,
-        top: theme.appBarHeight + contentOffset,
+        left: DRAWER_WIDTH + contentOffset,
+        top: APP_BAR_HEIGHT + contentOffset,
+        overflow: "auto",
       }}
     >
       {children}

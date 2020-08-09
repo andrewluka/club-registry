@@ -1,52 +1,62 @@
 import { Database } from "better-sqlite3";
-import TablesServices from "./TablesService";
 import {
   Game,
   GameID,
   AddGameOptions,
   UpdateGameNameOptions,
-} from "../../typings/game";
-import { UserID } from "../../typings/user";
+  BorrowAndReturnGameOptions,
+  UpdateGameTagsOptions,
+} from "../../src/typings/game";
+import { GAMES_TAGS_DELIMITER } from "../../src/constants/tables";
 import UsersService from "./UsersService";
+import TablesService from "./TablesService";
 
-interface BorrowAndReturnGameOptions {
-  borrower: UserID;
-  game: GameID;
+interface UpdateGameColumnOptions<T> {
+  game_id: GameID;
+  columnName: string;
+  newValue: T;
 }
 
 export default class GamesService {
   constructor(private db: Database) {
-    const tablesService = new TablesServices(this.db);
+    const tablesService = new TablesService(this.db);
     tablesService.createTables();
   }
 
-  addGame = ({ name, is_suspended = false }: AddGameOptions): GameID => {
-    const insertStatement = this.db.prepare(
-      "INSERT INTO games (name, is_suspended) VALUES (?, ?)"
+  addGame = ({
+    name,
+    is_suspended = false,
+    tags = null,
+  }: AddGameOptions): GameID => {
+    tags = [...new Set(tags)];
+
+    const addGameStatement = this.db.prepare(
+      `INSERT INTO games (name, is_suspended, tags) 
+        VALUES (@name, @is_suspended, @tags)`
     );
 
-    const game_id = insertStatement.run(name, Number(is_suspended))
-      .lastInsertRowid;
+    const game_id = addGameStatement.run({
+      name,
+      is_suspended: Number(is_suspended) as any,
+      tags: tags.join(GAMES_TAGS_DELIMITER) || null,
+    }).lastInsertRowid;
 
     return Number(game_id);
   };
 
-  getGame = (game_id: GameID): Game | undefined => {
-    const game = this.db
-      .prepare("SELECT * FROM games WHERE game_id = ?")
-      .all(game_id)[0];
-
-    return game;
-  };
+  getGame = (game_id: GameID): Game | undefined =>
+    this.db.prepare("SELECT * FROM games WHERE game_id = ?").all(game_id)[0];
 
   removeGame = (game_id: GameID): void => {
     if (this.isGameBorrowed(game_id)) {
       throw new Error(`Cannot delete game while it has been borrowed`);
     }
 
-    this.db
-      .prepare(`DELETE FROM games WHERE game_id = @game_id`)
-      .run({ game_id });
+    const removeGameStatement = this.db.prepare(
+      `DELETE FROM games WHERE game_id = ?`
+    );
+
+    removeGameStatement.run(game_id);
   };
 
   isGameBorrowed = (game_id: GameID) => {
@@ -57,7 +67,7 @@ export default class GamesService {
     }
 
     const gameHasBeenBorrowed =
-      game.user_with_the_game !== null && game.user_with_the_game !== undefined;
+      game.borrowing !== null && game.borrowing !== undefined;
 
     return gameHasBeenBorrowed;
   };
@@ -69,14 +79,11 @@ export default class GamesService {
       throw new Error(`Cannot suspend game while borrowed`);
     }
 
-    this.db
-      .prepare(
-        `
-        UPDATE games SET is_suspended = 1 
-          WHERE game_id = ?
-        `
-      )
-      .run(game_id);
+    this._updateColumn({
+      game_id,
+      columnName: "is_suspended",
+      newValue: 1,
+    });
   };
 
   unsuspendGame = (game_id: GameID) => {
@@ -84,14 +91,11 @@ export default class GamesService {
       throw new Error(`Cannot unsuspend game while borrowed`);
     }
 
-    this.db
-      .prepare(
-        `
-        UPDATE games SET is_suspended = 0 
-          WHERE game_id = ?
-        `
-      )
-      .run(game_id);
+    this._updateColumn({
+      game_id,
+      columnName: "is_suspended",
+      newValue: 0,
+    });
   };
 
   borrowGame = ({ borrower, game }: BorrowAndReturnGameOptions) => {
@@ -107,37 +111,59 @@ export default class GamesService {
       );
     }
 
-    const updateUserStatement = this.db.prepare(
+    const updateBorrowingsTableStatement = this.db.prepare(
       `
-      UPDATE users 
-        SET game_taken = @game
-        WHERE user_id = @borrower
-      `
-    );
-
-    const updateGameStatement = this.db.prepare(
-      `
-      UPDATE games 
-        SET user_with_the_game = @borrower
-        WHERE game_id = @game
+      INSERT INTO borrowings (
+        borrower_id,
+        game_id,
+        date_borrowed
+      ) VALUES (
+        @borrower,
+        @game,
+        @date_borrowed
+      )
       `
     );
 
-    this.db
-      .transaction(() => {
-        updateUserStatement.run({ borrower, game });
-        updateGameStatement.run({ borrower, game });
-      })
-      .default();
+    const borrowGameTransaction = this.db.transaction(
+      ({ borrower, game }: BorrowAndReturnGameOptions) => {
+        const updateUserStatement = this.db.prepare(
+          `
+          UPDATE users 
+            SET borrowing = @borrowing
+            WHERE user_id = @borrower
+          `
+        );
+
+        const updateGameStatement = this.db.prepare(
+          `
+          UPDATE games 
+            SET borrowing = @borrowing
+            WHERE game_id = @game
+          `
+        );
+
+        const borrowing = updateBorrowingsTableStatement.run({
+          borrower,
+          game,
+          date_borrowed: Date.now(),
+        }).lastInsertRowid;
+
+        updateUserStatement.run({ borrower, borrowing });
+        updateGameStatement.run({ borrowing, game });
+      }
+    );
+
+    borrowGameTransaction.default({ borrower, game });
   };
 
   returnGame = ({ game, borrower }: BorrowAndReturnGameOptions) => {
     const usersService = new UsersService(this.db);
 
-    const { user_with_the_game } = this.getGame(game) || {};
-    const { game_taken } = usersService.getUser(borrower) || {};
+    const { borrowing: gameBorrowing } = this.getGame(game) || {};
+    const { borrowing: userBorrowing } = usersService.getUser(borrower) || {};
 
-    if (user_with_the_game !== borrower || game !== game_taken) {
+    if (gameBorrowing !== userBorrowing) {
       throw new Error(`User with user_id ${borrower} has not \
 borrowed game with game_id ${game}`);
     }
@@ -145,37 +171,53 @@ borrowed game with game_id ${game}`);
     const unlinkUserStatement = this.db.prepare(
       `
       UPDATE users
-        SET game_taken = NULL
+        SET borrowing = NULL
         WHERE user_id = ?
       `
     );
-
     const unlinkGameStatement = this.db.prepare(
       `
       UPDATE games
-        SET user_with_the_game = NULL
+        SET borrowing = NULL
         WHERE game_id = ?
       `
     );
+    const unlinkBorrowingsTableStatement = this.db.prepare(
+      `
+      UPDATE borrowings
+        SET date_returned = @date_returned
+        WHERE borrowing_id = @borrowing
+      `
+    );
 
-    this.db
-      .transaction(() => {
+    const returnGameTransaction = this.db.transaction(
+      ({ borrower, game }: BorrowAndReturnGameOptions) => {
         unlinkUserStatement.run(borrower);
         unlinkGameStatement.run(game);
-      })
-      .default();
+
+        unlinkBorrowingsTableStatement.run({
+          borrowing: userBorrowing,
+          date_returned: Date.now(),
+        });
+      }
+    );
+
+    returnGameTransaction.deferred({ game, borrower });
   };
 
   getAllGames = (): Game[] => this.db.prepare("SELECT * FROM games").all();
 
-  private _createNotifierTrigger = ({
+  private _createNotifierTrigger = <
+    TriggerFnParams extends any[],
+    TriggerFnReturnType
+  >({
     on,
     onTrigger,
     onTriggerArgs,
   }: {
     on: "update" | "insert" | "delete";
-    onTrigger: (...params: any[]) => any;
-    onTriggerArgs: any[];
+    onTrigger: (...params: TriggerFnParams) => TriggerFnReturnType;
+    onTriggerArgs: TriggerFnParams;
   }) => {
     this.db
       .transaction(() => {
@@ -199,23 +241,55 @@ borrowed game with game_id ${game}`);
       .default();
   };
 
-  createNotifierTriggers = (
-    onTrigger: (...params: any[]) => any,
-    ...onTriggerArgs: any[]
+  createNotifierTriggers = <TriggerFnParams extends any[], TriggerFnReturnType>(
+    onTrigger: (...params: TriggerFnParams) => TriggerFnReturnType,
+    ...onTriggerArgs: TriggerFnParams
   ) => {
     this._createNotifierTrigger({ on: "insert", onTrigger, onTriggerArgs });
     this._createNotifierTrigger({ on: "update", onTrigger, onTriggerArgs });
     this._createNotifierTrigger({ on: "delete", onTrigger, onTriggerArgs });
   };
 
-  updateGameName = ({ game_id, newName }: UpdateGameNameOptions) => {
+  private _updateColumn = <T>({
+    game_id,
+    columnName,
+    newValue,
+  }: UpdateGameColumnOptions<T>) => {
+    if (!this.gameExists(game_id)) {
+      throw new Error(`No such game with game_id ${game_id}`);
+    }
+
     this.db
       .prepare(
         `
-        UPDATE games SET name = @newName 
+        UPDATE games SET ${columnName} = @newValue 
         WHERE game_id = @game_id
         `
       )
-      .run({ game_id, newName });
+      .run({ game_id, newValue });
+  };
+
+  updateGameName = ({ game_id, newName }: UpdateGameNameOptions) =>
+    this._updateColumn({ game_id, newValue: newName, columnName: "name" });
+
+  updateGameTags = ({ game_id, newTags }: UpdateGameTagsOptions) =>
+    this._updateColumn({
+      game_id,
+      newValue: [...new Set(newTags)].join(GAMES_TAGS_DELIMITER),
+      columnName: "tags",
+    });
+
+  getAllGameTags = (): string[] => {
+    const getAllGameTagsStatement = this.db.prepare("SELECT tags FROM games");
+
+    const tagsStrings: string[] = getAllGameTagsStatement
+      .all()
+      .map(({ tags }) => tags)
+      .filter(Boolean);
+
+    const splitTagsString = (e: string) => e.split(GAMES_TAGS_DELIMITER);
+    const allTags = tagsStrings.flatMap(splitTagsString);
+
+    return [...new Set(allTags)];
   };
 }

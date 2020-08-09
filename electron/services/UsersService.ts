@@ -1,17 +1,21 @@
 import { Database } from "better-sqlite3";
-import TablesServices from "./TablesService";
-import { User, UserID } from "../../typings/user";
+import {
+  User,
+  UserID,
+  AddUserOptions,
+  UpdateUserNameOptions,
+} from "../../src/typings/user";
+import TablesService from "./TablesService";
 
-interface AddUserOptions {
-  name: string;
-  date_of_birth?: number | null;
-  phone_number?: string | null;
-  is_suspended?: boolean;
+interface UpdateUserColumnOptions<T> {
+  user_id: UserID;
+  columnName: string;
+  newValue: T;
 }
 
 export default class UsersService {
   constructor(private db: Database) {
-    const tablesService = new TablesServices(this.db);
+    const tablesService = new TablesService(this.db);
     tablesService.createTables();
   }
 
@@ -19,20 +23,18 @@ export default class UsersService {
     name,
     date_of_birth = null,
     phone_number = null,
-    is_suspended = false,
   }: AddUserOptions): UserID => {
-    const insertStatement = this.db.prepare(
+    const addUserStatement = this.db.prepare(
       `
-      INSERT INTO users (name, date_of_birth, phone_number, is_suspended) 
-        VALUES (@name, @date_of_birth, @phone_number, @is_suspended)
+      INSERT INTO users (name, date_of_birth, phone_number) 
+        VALUES (@name, @date_of_birth, @phone_number)
       `
     );
 
-    const user_id = insertStatement.run({
+    const user_id = addUserStatement.run({
       name,
       date_of_birth,
       phone_number,
-      is_suspended: Number(is_suspended),
     }).lastInsertRowid;
 
     return Number(user_id);
@@ -44,15 +46,19 @@ export default class UsersService {
 has a game`);
     }
 
-    this.db
-      .prepare("DELETE FROM users WHERE user_id = @the_user_id")
-      .run({ the_user_id: user_id });
+    const removeUserStatement = this.db.prepare(
+      "DELETE FROM users WHERE user_id = ?"
+    );
+
+    removeUserStatement.run(user_id);
   };
 
   getUser = (user_id: UserID): User | undefined => {
-    const user = this.db
-      .prepare("SELECT * FROM users WHERE user_id = ?")
-      .all(user_id)[0];
+    const getUserStatement = this.db.prepare(
+      "SELECT * FROM users WHERE user_id = ?"
+    );
+
+    const user = getUserStatement.all(user_id)[0];
 
     return user;
   };
@@ -64,8 +70,7 @@ has a game`);
       throw new Error(`No such user with user_id ${user_id}`);
     }
 
-    const userHasGame =
-      user.game_taken !== undefined && user.game_taken !== null;
+    const userHasGame = user.borrowing !== undefined && user.borrowing !== null;
 
     return userHasGame;
   };
@@ -75,14 +80,11 @@ has a game`);
       throw new Error(`Cannot suspend user while user has borrowed game`);
     }
 
-    this.db
-      .prepare(
-        `
-        UPDATE users SET is_suspended = 1 
-          WHERE user_id = ?
-        `
-      )
-      .run(user_id);
+    this._updateColumn({
+      user_id,
+      columnName: "is_suspended",
+      newValue: 1,
+    });
   };
 
   unsuspendUser = (user_id: UserID) => {
@@ -90,19 +92,35 @@ has a game`);
       throw new Error(`Cannot unsuspend user while user has borrowed game`);
     }
 
-    this.db
-      .prepare(
-        `
-        UPDATE users SET is_suspended = 0
-          WHERE user_id = ?
-        `
-      )
-      .run(user_id);
+    this._updateColumn({
+      user_id,
+      columnName: "is_suspended",
+      newValue: 0,
+    });
   };
 
   userExists = (user_id: UserID): boolean => !!this.getUser(user_id);
 
   getAllUsers = (): User[] => this.db.prepare("SELECT * FROM users").all();
+
+  private _updateColumn = <T>({
+    user_id,
+    columnName,
+    newValue,
+  }: UpdateUserColumnOptions<T>) => {
+    if (!this.userExists(user_id)) {
+      throw new Error(`No such user with user_id ${user_id}`);
+    }
+
+    this.db
+      .prepare(
+        `
+        UPDATE users SET ${columnName} = @newValue 
+        WHERE user_id = @user_id
+        `
+      )
+      .run({ user_id, newValue });
+  };
 
   private _createNotifierTrigger = ({
     on,
@@ -142,5 +160,17 @@ has a game`);
     this._createNotifierTrigger({ on: "insert", onTrigger, onTriggerArgs });
     this._createNotifierTrigger({ on: "update", onTrigger, onTriggerArgs });
     this._createNotifierTrigger({ on: "delete", onTrigger, onTriggerArgs });
+  };
+
+  updateUserName = ({ user_id, newName }: UpdateUserNameOptions) => {
+    if (!this.userExists(user_id)) {
+      throw new Error(`No such user with user_id ${user_id}`);
+    }
+
+    this._updateColumn({
+      user_id,
+      columnName: "name",
+      newValue: newName,
+    });
   };
 }

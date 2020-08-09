@@ -1,42 +1,119 @@
 import React from "react";
-import MUIDataTable, { MUIDataTableColumnDef } from "mui-datatables";
 import { Drawer } from "../components/Drawer";
-// import { useTheme } from "emotion-theming";
-// import { Theme } from "../../typings/theme";
 import { AppBar } from "../components/AppBar";
 import { TableWrapper } from "../components/TableWrapper";
-import { getAllUsers } from "../services/tablesServices";
+import { useUsers } from "../hooks/useUsers";
+import { DataTable, DataTableColumnDef } from "../components/DataTable";
+import {
+  removeUser,
+  getUser,
+  updateUserName,
+  suspendUser,
+  unsuspendUser,
+} from "../services/usersServices";
+import { getMUIDatatableEditableRenderer } from "../components/getMUIDatatableEditableRenderer";
+import { getMUIDatatableIsSuspendedRenderer } from "../components/getMUIDatatableIsSuspendedRenderer";
+import { RedirectCornerFab } from "../components/RedirectCornerFab";
+import { Routes } from "../constants/routes";
+import AddIcon from "@material-ui/icons/Add";
+import { getMUIDatatableQRCodeRenderer } from "../components/getMUIDatatableQRCodeRenderer";
+import moment from "moment";
+import { useQrCodeFilesGenerator } from "../hooks/useQrCodeFilesGenerator";
+import { DATE_FORMAT } from "../constants/dates";
+import { useTheme } from "@material-ui/core/styles";
 
 export const Users = () => {
-  // const theme = useTheme<Theme>();
+  const { data: rows } = useUsers();
+  const { generateQrCodes } = useQrCodeFilesGenerator();
 
-  const columns: MUIDataTableColumnDef[] = [
+  const theme = useTheme();
+
+  const columns: DataTableColumnDef[] = [
     { label: "ID", name: "user_id" },
-    { name: "name", label: "Name" },
-    { label: "Date of Birth", name: "date_of_birth" },
-    { label: "Phone number", name: "phone_number" },
-  ];
+    {
+      name: "name",
+      label: "Name",
+      options: {
+        customBodyRender: getMUIDatatableEditableRenderer({
+          get: (user_id) => getUser(user_id).name,
+          update: ({ id, newValue }) =>
+            updateUserName({ user_id: id, newName: newValue }),
+        }),
+      },
+    },
+    {
+      label: "Date of Birth",
+      name: "date_of_birth",
+      options: {
+        customBodyRenderLite: (dataIndex) => {
+          const date_of_birth = rows[dataIndex].date_of_birth;
 
-  const rows = getAllUsers().map(
-    ({ user_id, name, date_of_birth, phone_number, is_suspended }) => ({
-      user_id,
-      name,
-      date_of_birth:
-        typeof date_of_birth === "number"
-          ? new Date(date_of_birth).toDateString()
-          : "",
-      phone_number: phone_number || "",
-      is_suspended,
-    })
-  );
+          return typeof date_of_birth === "number"
+            ? moment(date_of_birth).format(DATE_FORMAT)
+            : "";
+        },
+      },
+    },
+    {
+      label: "Phone number",
+      name: "phone_number",
+    },
+    {
+      name: "is_suspended",
+      label: "Suspended?",
+      options: {
+        customBodyRender: getMUIDatatableIsSuspendedRenderer({
+          suspend: suspendUser,
+          unsuspend: unsuspendUser,
+        }),
+      },
+    },
+    {
+      name: "game_id",
+      label: "Generate & Download all QR Codes",
+      options: {
+        customBodyRender: getMUIDatatableQRCodeRenderer(),
+        filter: false,
+        sort: false,
+        print: false,
+        download: false,
+        viewColumns: false,
+        setCellHeaderProps: () => ({
+          onClick: async () => {
+            await generateQrCodes({
+              values: rows.map(({ user_id, name }) => ({
+                data: String(user_id),
+                nickname: name,
+              })),
+            });
+          },
+          style: {
+            color: theme.palette.primary.main,
+            cursor: "pointer",
+          },
+        }),
+      },
+    },
+  ];
 
   return (
     <React.Fragment>
       <Drawer />
       <AppBar title="Users" />
       <TableWrapper>
-        <MUIDataTable title="Users" columns={columns} data={rows} />
+        <DataTable
+          title="Users"
+          columns={columns}
+          rows={rows}
+          getRowId={({ user_id }) => user_id}
+          remove={removeUser}
+        />
       </TableWrapper>
+      <RedirectCornerFab
+        tooltipTitle="Add User"
+        redirectUrl={Routes.ADD_USER}
+        Icon={AddIcon}
+      />
     </React.Fragment>
   );
 };

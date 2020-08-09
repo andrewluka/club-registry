@@ -1,23 +1,18 @@
 /** @jsx jsx */
 import { jsx } from "@emotion/core";
-import { MUIDatatableRenderer } from "../../typings/muiDatatable";
-import { Tooltip, IconButton, Modal } from "@material-ui/core";
+import { Fragment } from "react";
+import { MUIDatatableRenderer } from "../typings/muiDatatable";
+import { Tooltip, IconButton } from "@material-ui/core";
 import { QRCodeIcon } from "./QRCodeIcon";
-import QRCode from "qrcode.react";
-import {
-  useDismissableSnackbar,
-  DismissableSnackbarEnqueuer,
-} from "../hooks/useDismissableSnackbar";
+import { QRCodeModal } from "./QRCodeModal";
 
 interface Options {
   qrCodeValueIndex?: number;
-  enqueueDismissableSnackbar: DismissableSnackbarEnqueuer;
 }
 
-export const getMUIDatatableQRCodeRenderer = ({
-  enqueueDismissableSnackbar,
-  qrCodeValueIndex = 0,
-}: Options) => {
+export const getMUIDatatableQRCodeRenderer = (options?: Options) => {
+  const { qrCodeValueIndex = 0 } = options || {};
+
   const MUIDatatableQRCodeRenderer: MUIDatatableRenderer<boolean> = (
     isModalOpen,
     tableMeta,
@@ -29,54 +24,21 @@ export const getMUIDatatableQRCodeRenderer = ({
     const openModal = () => setIsModalOpen(true as any);
     const closeModal = () => setIsModalOpen(false as any);
 
-    const units = window.innerHeight > window.innerWidth ? "vw" : "vh";
-    const modalSize = 100 + units;
-    const iconSize =
-      0.9 * (units === "vw" ? window.innerWidth : window.innerHeight);
-
-    return isModalOpen ? (
-      <Modal open={isModalOpen} onClose={closeModal}>
-        <div
-          css={{
-            width: modalSize,
-            height: modalSize,
-            position: "fixed",
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -50%)",
-            backgroundColor: "white",
-          }}
-        >
-          <QRCode
-            onClick={(event) => {
-              console.log(
-                new XMLSerializer().serializeToString(
-                  (event.nativeEvent.target as HTMLElement).parentNode as any
-                )
-              );
-              enqueueDismissableSnackbar({
-                message: "Hullo",
-              });
-            }}
-            css={{
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-            width={iconSize}
-            height={iconSize}
-            renderAs="svg"
-            value={String(value)}
+    return (
+      <Fragment>
+        {isModalOpen && (
+          <QRCodeModal
+            onClose={closeModal}
+            open={isModalOpen}
+            qrCodeValue={String(value)}
           />
-        </div>
-      </Modal>
-    ) : (
-      <Tooltip title="Generate QR Code">
-        <IconButton onClick={openModal}>
-          <QRCodeIcon />
-        </IconButton>
-      </Tooltip>
+        )}
+        <Tooltip title="Generate QR Code">
+          <IconButton onClick={openModal}>
+            <QRCodeIcon />
+          </IconButton>
+        </Tooltip>
+      </Fragment>
     );
   };
 

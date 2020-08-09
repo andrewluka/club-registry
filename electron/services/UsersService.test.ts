@@ -1,6 +1,5 @@
 import UsersService from "./UsersService";
 import Database from "better-sqlite3";
-import { User } from "../../typings/user";
 import GamesService from "./GamesService";
 
 test("UsersService#addUser adds user", () => {
@@ -22,7 +21,7 @@ test("UsersService#addUser adds user", () => {
   expect(Number(user?.user_id)).toBe(user_id);
 });
 
-test("UsersService#getUser adds user", () => {
+test("UsersService#getUser gets user", () => {
   const db = Database(":memory:");
   const usersService = new UsersService(db);
 
@@ -219,4 +218,31 @@ test("UsersService#createNotifierTriggers", () => {
 
   usersService.removeUser(game_id);
   expect(x).toBe(3);
+});
+
+test("UsersService#updateUserName", () => {
+  const db = Database(":memory:");
+  const usersService = new UsersService(db);
+
+  const user_id = usersService.addUser({ name: "random name here" });
+  const newName = "new name";
+
+  usersService.updateUserName({ user_id, newName });
+
+  expect(usersService.getUser(user_id)?.name).toBe(newName);
+});
+
+test("UsersService#updateUserName throws when user doesn't exist", () => {
+  const db = Database(":memory:");
+  const usersService = new UsersService(db);
+
+  let e: any;
+
+  try {
+    usersService.updateUserName({ user_id: 7, newName: "not there :(" });
+  } catch (e_) {
+    e = e_;
+  }
+
+  expect(e).toBeTruthy();
 });

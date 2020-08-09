@@ -1,21 +1,10 @@
-import { useState, useEffect } from "react";
-import { getAllGames } from "../services/tablesServices";
+import { getAllGames } from "../services/gamesServices";
+import { getIpcUsingHook } from "./getIpcUsingHook";
+import { GAMES_CHANGED_CHANNEL } from "../constants/tables";
 
-const { ipcRenderer } = window.require("electron");
+const channel = GAMES_CHANGED_CHANNEL;
 
-export const useGames = () => {
-  const [games, setGames] = useState(getAllGames());
-
-  useEffect(() => {
-    const channel = "games_changed";
-    const listener = () => {
-      setGames(getAllGames());
-    };
-
-    ipcRenderer.on(channel, listener);
-
-    return () => ipcRenderer.removeListener(channel, listener);
-  }, []);
-
-  return games;
-};
+export const useGames = getIpcUsingHook({
+  getData: getAllGames,
+  ipcChannels: [channel],
+});

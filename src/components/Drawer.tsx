@@ -1,7 +1,5 @@
 /** @jsx jsx */
 import { jsx } from "@emotion/core";
-import { useTheme } from "emotion-theming";
-import { Theme } from "../../typings/theme";
 import MuiDrawer from "@material-ui/core/Drawer";
 import { SvgIconComponent } from "@material-ui/icons";
 import {
@@ -13,10 +11,11 @@ import {
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import { useHistory } from "react-router-dom";
-import { Routes } from "../routes";
+import { Routes } from "../constants/routes";
 import HomeIcon from "@material-ui/icons/Home";
 import UsersIcon from "@material-ui/icons/PeopleAlt";
 import GamesIcon from "@material-ui/icons/SportsEsports";
+import { DRAWER_WIDTH } from "../constants/ui";
 
 interface PrimaryAction {
   text: string;
@@ -31,21 +30,18 @@ export const Drawer = () => {
     { pathToPush: Routes.GAMES, text: "Games", Icon: GamesIcon },
   ];
 
-  const theme = useTheme<Theme>();
   const history = useHistory();
 
   const useStyles = makeStyles({
-    paper: {
-      background: theme.drawerBackgroundColor,
-      color: theme.drawerTextColor,
-      width: theme.drawerWidth,
+    drawer: {
+      width: DRAWER_WIDTH,
     },
   });
 
   const styles = useStyles();
 
   return (
-    <MuiDrawer classes={{ paper: styles.paper }} variant="permanent">
+    <MuiDrawer classes={{ paper: styles.drawer }} variant="permanent">
       <Toolbar />
       <div css={{ overflow: "auto" }}>
         <List>
@@ -60,7 +56,7 @@ export const Drawer = () => {
               key={text}
             >
               <ListItemIcon>
-                <Icon style={{ fill: theme.drawerTextColor }} />
+                <Icon />
               </ListItemIcon>
               <ListItemText primary={text} />
             </ListItem>

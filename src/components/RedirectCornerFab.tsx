@@ -1,13 +1,10 @@
 /** @jsx jsx */
 import { jsx } from "@emotion/core";
-import { useTheme as useEmotionTheme } from "emotion-theming";
-import { Tooltip, Fab, createMuiTheme } from "@material-ui/core";
-import { ThemeProvider as MuiThemeProvider } from "@material-ui/core/styles";
+import { Tooltip, Fab } from "@material-ui/core";
 import { Fragment, FC } from "react";
 import { useHistory } from "react-router-dom";
 import { SvgIconComponent } from "@material-ui/icons";
-import { Theme } from "../../typings/theme";
-import { Routes } from "../routes";
+import { Routes } from "../constants/routes";
 
 interface Props {
   tooltipTitle?: string;
@@ -23,8 +20,6 @@ export const RedirectCornerFab: FC<Props> = ({
   const history = useHistory();
   const TooltipComponent = tooltipTitle ? Tooltip : Fragment;
 
-  const theme = useEmotionTheme<Theme>();
-
   return (
     <TooltipComponent title={tooltipTitle || ""} arrow>
       <Fab
@@ -36,7 +31,7 @@ export const RedirectCornerFab: FC<Props> = ({
         color="primary"
         onClick={() => history.push(redirectUrl)}
       >
-        <Icon style={{ fill: theme.fabPrimaryIconColor }} />
+        <Icon />
       </Fab>
     </TooltipComponent>
   );
