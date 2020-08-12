@@ -12,27 +12,43 @@ import { IconButton, Tooltip } from "@material-ui/core";
 import ReturnIcon from "@material-ui/icons/Replay";
 import { useHistory } from "react-router-dom";
 import { DataTable, DataTableColumnDef } from "../components/DataTable";
+import moment from "moment";
+import { SPELLED_OUT_DATE_AND_TIME_FORMAT } from "../constants/dates";
+import { getDataTableDateFilterOptions } from "../utils/getDataTableFilterDateOptions";
 
 export const Home = () => {
   const { data: rows } = useBorrowersAndGames();
   const history = useHistory();
 
   const columns: DataTableColumnDef[] = [
-    { label: "User ID", name: "user_id" },
-    { label: "User's name", name: "user_name" },
-    { label: "Game ID", name: "game_id" },
-    { label: "Game borrowed", name: "game_name" },
+    { label: "User ID", name: "user_id", options: { filter: false } },
+    { label: "User's name", name: "user_name", options: { filter: false } },
+    { label: "Game ID", name: "game_id", options: { filter: false } },
+    { label: "Game borrowed", name: "game_name", options: { filter: false } },
+    {
+      label: "Borrowed when?",
+      name: "date_borrowed",
+      options: {
+        customBodyRender: (date) =>
+          moment(date).format(SPELLED_OUT_DATE_AND_TIME_FORMAT),
+        ...getDataTableDateFilterOptions({
+          extractDate: ({ date_borrowed }) => date_borrowed,
+          rows,
+        }),
+      },
+    },
     {
       name: "",
+      label: "Return game",
       options: {
         sort: false,
         filter: false,
-        customBodyRenderLite: (dataIndex) => (
+        customBodyRenderLite: (_, rowIndex) => (
           <Tooltip title="Return game">
             <IconButton
               color="secondary"
               onClick={() => {
-                const { game_id, user_id } = rows[dataIndex];
+                const { game_id, user_id } = rows[rowIndex];
                 const userParam = `${ReturnGameQueryParams.user_id}=${user_id}`;
                 const gameParam = `${ReturnGameQueryParams.game_id}=${game_id}`;
 

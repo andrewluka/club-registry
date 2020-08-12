@@ -4,6 +4,8 @@ import {
   UserID,
   AddUserOptions,
   UpdateUserNameOptions,
+  UpdateUserPhoneNumberOptions,
+  UpdateUserDateOfBirthOptions,
 } from "../../src/typings/user";
 import TablesService from "./TablesService";
 
@@ -163,15 +165,30 @@ has a game`);
     this._createNotifierTrigger({ on: "delete", onTrigger, onTriggerArgs });
   };
 
-  updateUserName = ({ user_id, newName }: UpdateUserNameOptions) => {
-    if (!this.userExists(user_id)) {
-      throw new Error(`No such user with user_id ${user_id}`);
-    }
-
+  updateUserName = ({ user_id, newName }: UpdateUserNameOptions) =>
     this._updateColumn({
       user_id,
       columnName: "name",
       newValue: newName,
     });
-  };
+
+  updateUserPhoneNumber = ({
+    newPhoneNumber,
+    user_id,
+  }: UpdateUserPhoneNumberOptions) =>
+    this._updateColumn({
+      user_id,
+      columnName: "phone_number",
+      newValue: newPhoneNumber,
+    });
+
+  updateUserDateOfBirth = ({
+    user_id,
+    newDateOfBirth,
+  }: UpdateUserDateOfBirthOptions) =>
+    this._updateColumn({
+      user_id,
+      columnName: "date_of_birth",
+      newValue: newDateOfBirth,
+    });
 }

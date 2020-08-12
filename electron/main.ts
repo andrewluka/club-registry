@@ -92,11 +92,16 @@ registerIpcSetter("unsuspendUser", usersService.unsuspendUser);
 registerIpcSetter("returnGame", gamesService.returnGame);
 registerIpcSetter("addUser", usersService.addUser);
 registerIpcSetter("updateGameTags", gamesService.updateGameTags);
+registerIpcSetter("updateUserPhoneNumber", usersService.updateUserPhoneNumber);
+registerIpcSetter("updateUserDateOfBirth", usersService.updateUserDateOfBirth);
+registerIpcSetter("updateSettings", settingsService.updateSettings);
 
 function createWindow() {
   win = new BrowserWindow({
     width: 800,
     height: 600,
+    minWidth: 400,
+    minHeight: 250,
     webPreferences: {
       nodeIntegration: true,
       enableRemoteModule: true,

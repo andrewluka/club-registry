@@ -28,15 +28,18 @@ import { usePromptDialog } from "../hooks/usePromptDialog";
 import { Game, GameID } from "../typings/game";
 import { TagsAutoComplete } from "../components/TagsAutoComplete";
 import { useTags } from "../hooks/useTags";
+import { getDataTableIsSuspendedOptions } from "../utils/getDataTableIsSuspendedOptions";
+import { getMUIDatatableGameTagsRenderer } from "../components/getMUIDatatableGameTagsRenderer";
+import { getDataTableFilterTagsOptions } from "../utils/getDataTableFilterTagsOptions";
 
 export const Games = () => {
   const theme = useTheme();
   const { data: rows } = useGames();
   const { generateQrCodes } = useQrCodeFilesGenerator();
   const { prompt } = usePromptDialog();
-  const { data: options } = useTags();
+  const { data: allGameTags } = useTags();
 
-  const gamesToLookupObj = (games: Game[]) => {
+  const gamesToMap = (games: Game[]) => {
     const map = new Map<number, boolean>();
 
     for (let i = 0; i < games.length; ++i) {
@@ -46,10 +49,7 @@ export const Games = () => {
     return map;
   };
 
-  const [chipsStates, setChipsStates] = useState(gamesToLookupObj(rows));
-
-  const is_suspendedFilterListRenderer = (value: any) =>
-    value ? "Suspended" : "Not Suspended";
+  const [chipsStates, setChipsStates] = useState(gamesToMap(rows));
 
   const columns: DataTableColumnDef[] = [
     {
@@ -79,121 +79,29 @@ export const Games = () => {
           suspend: suspendGame,
           unsuspend: unsuspendGame,
         }),
-        customFilterListOptions: {
-          render: is_suspendedFilterListRenderer,
-        },
-        filterOptions: {
-          renderValue: is_suspendedFilterListRenderer,
-        },
+        ...getDataTableIsSuspendedOptions(),
       },
     },
     {
       name: "tags",
       label: "Tags",
       options: {
-        filter: false,
-        customBodyRender: (
-          tagsString: string | null,
-          tableMeta,
-          updateValue
-        ) => {
-          const game_id: GameID = tableMeta.rowData[0];
-          const tags =
-            tagsString?.split(GAMES_TAGS_DELIMITER).filter(Boolean) || [];
+        ...getDataTableFilterTagsOptions({
+          allGameTags,
+        }),
+        customBodyRender: getMUIDatatableGameTagsRenderer({
+          allGameTags,
+          tagChipsStatesMap: chipsStates,
+          updateMapAtId: (id, newValue) => {
+            setChipsStates((oldMap) => {
+              const newMap = new Map(oldMap);
+              newMap.set(id, newValue);
 
-          const updateTags = (newTags: string[]) => {
-            updateGameTags({
-              game_id,
-              newTags,
+              return newMap;
             });
-            updateValue(newTags.join(GAMES_TAGS_DELIMITER));
-          };
-
-          const AddTagButton = () => {
-            return (
-              <Tooltip title="Add tag">
-                <IconButton
-                  onClick={async () => {
-                    const newTags = await prompt<string[]>({
-                      title: "Add a new Tag?",
-                      content: "",
-                      InputComponent: ({ onChange, value }) => {
-                        const tagIsNotAlreadyThere = (tag: string) =>
-                          !tags.includes(tag);
-
-                        const handleOnChange = (_: any, tags: string[]) => {
-                          onChange(tags.filter(tagIsNotAlreadyThere));
-                        };
-
-                        return (
-                          <TagsAutoComplete
-                            onChange={handleOnChange}
-                            onAdd={handleOnChange}
-                            selectedTags={value || []}
-                            options={options.filter(tagIsNotAlreadyThere)}
-                          />
-                        );
-                      },
-                    });
-
-                    if (!newTags) return;
-
-                    updateTags([...tags, ...newTags]);
-                  }}
-                  size="small"
-                >
-                  <AddIcon />
-                </IconButton>
-              </Tooltip>
-            );
-          };
-
-          const TagChip = ({ label }: { label: string }) => (
-            <Chip
-              onDelete={() => {
-                const newTags = tags.filter((tag) => tag !== label);
-                updateTags(newTags);
-              }}
-              css={{ margin: 1 }}
-              label={label}
-            />
-          );
-
-          const TagsComponent = () => {
-            if (tags.length <= 0) return <AddTagButton />;
-
-            return chipsStates.get(game_id) ? (
-              <Fragment>
-                {tags.map((tag) => (
-                  <TagChip key={tag} label={tag} />
-                ))}
-                <AddTagButton />
-              </Fragment>
-            ) : (
-              <Fragment>
-                <TagChip label={tags[0]} />
-                {tags.length > 1 ? (
-                  <span
-                    onClick={() => {
-                      const newState = new Map(chipsStates);
-                      newState.set(game_id, true);
-
-                      setChipsStates(newState);
-                    }}
-                    css={{ cursor: "pointer" }}
-                  >
-                    {" +"}
-                    {String(tags.length - 1)}
-                  </span>
-                ) : (
-                  <AddTagButton />
-                )}
-              </Fragment>
-            );
-          };
-
-          return <TagsComponent />;
-        },
+          },
+          update: ({ id, newTags }) => updateGameTags({ game_id: id, newTags }),
+        }),
       },
     },
     {
@@ -204,7 +112,6 @@ export const Games = () => {
         sort: false,
         print: false,
         download: false,
-        // viewColumns: false,
         setCellHeaderProps: () => ({
           onClick: async () => {
             await generateQrCodes({

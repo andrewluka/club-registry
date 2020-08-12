@@ -5,14 +5,15 @@ import { AppBar } from "../components/AppBar";
 import { Routes } from "../constants/routes";
 import { Button } from "@material-ui/core";
 import { QRScannerTextField } from "../components/QRScannerTextField";
-import { KeyboardDatePicker } from "@material-ui/pickers";
+import { DatePicker } from "@material-ui/pickers";
 import { useErrorSnackbar } from "../hooks/useErrorSnackbar";
 import { Moment } from "moment";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { addUser } from "../services/usersServices";
 import { useHistory } from "react-router-dom";
 import { useSuccessSnackbar } from "../hooks/useSuccessSnackbar";
-import { DATE_FORMAT } from "../constants/dates";
+import { SPELLED_OUT_DATE_FORMAT } from "../constants/dates";
+import { isNumOrEmpty } from "../utils/isNumOrEmpty";
 
 const centerChildStyles = css({
   display: "flex",
@@ -29,11 +30,6 @@ export const AddUser = () => {
   const { enqueueSuccessSnackbar } = useSuccessSnackbar();
   const { confirm } = useConfirmDialog();
   const history = useHistory();
-
-  const checkPhoneNumberInput = (input: string) =>
-    /^\d+$/.test(input) ||
-    // also allow empty string
-    !input;
 
   const onSubmit = async () => {
     const date_of_birth = userDateOfBirth?.isValid() ? userDateOfBirth : null;
@@ -54,7 +50,8 @@ export const AddUser = () => {
             <li>phone number: {phoneNumber || undefinedElement}</li>
             <li>
               date of birth:{" "}
-              {date_of_birth?.format(DATE_FORMAT) || undefinedElement}
+              {date_of_birth?.format(SPELLED_OUT_DATE_FORMAT) ||
+                undefinedElement}
             </li>
           </ul>
         </Fragment>
@@ -105,19 +102,20 @@ export const AddUser = () => {
           <QRScannerTextField
             inputMethod="text"
             onChange={(newVal) =>
-              checkPhoneNumberInput(newVal) && setPhoneNumber(newVal)
+              isNumOrEmpty(newVal) && setPhoneNumber(newVal)
             }
             value={phoneNumber}
             label="User's phone number"
           />
         </div>
         <div css={[{ gridColumn: "3", gridRow: "1" }, centerChildStyles]}>
-          <KeyboardDatePicker
+          <DatePicker
             value={userDateOfBirth}
             onChange={(newDate) => setUserDateOfBirth(newDate || null)}
             disableFuture
+            clearable
             label="User's date of birth"
-            format={DATE_FORMAT}
+            format={SPELLED_OUT_DATE_FORMAT}
           />
         </div>
         <div css={[{ gridColumn: "1 / 4", gridRow: "2" }, centerChildStyles]}>

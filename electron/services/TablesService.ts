@@ -70,14 +70,12 @@ export default class TablesService {
         `
         CREATE TABLE IF NOT EXISTS borrowings (
           borrowing_id INTEGER PRIMARY KEY NOT NULL,
-          borrower_id INTEGER NOT NULL,
-          game_id INTEGER NOT NULL,
           date_borrowed INTEGER NOT NULL,
           date_returned INTEGER,
-          FOREIGN KEY (borrower_id)
-            REFERENCES users (user_id),
-          FOREIGN KEY (game_id)
-            REFERENCES games (game_id)
+          borrower_id INTEGER NOT NULL
+            REFERENCES users (user_id) ON DELETE CASCADE,
+          game_id INTEGER NOT NULL
+            REFERENCES games (game_id) ON DELETE CASCADE
         )
         `
       )
@@ -95,14 +93,17 @@ export default class TablesService {
       .prepare(
         `
         SELECT 
-          user_id,
-          game_id,
+          borrower_id as user_id,
+          borrowings.game_id as game_id,
           users.name as user_name,
-          games.name as game_name
+          games.name as game_name,
+          borrowings.date_borrowed as date_borrowed
         FROM 
-          users
+          borrowings
+        INNER JOIN users 
+          ON users.borrowing = borrowing_id          
         INNER JOIN games 
-          ON users.borrowing = games.borrowing
+          ON games.borrowing = borrowing_id
         ORDER BY 
           user_id
         `

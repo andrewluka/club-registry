@@ -25,16 +25,12 @@ export const ReturnGame = () => {
 
   const onSubmit = () => {
     if (user_id !== scannedUserId) {
-      console.log({ user_id, scannedUserId });
-
       return enqueueErrorSnackbar({
         errorMessage: "Provided User ID does not match the expected one",
       });
     }
 
     if (game_id !== scannedGameId) {
-      console.log({ game_id, scannedGameId });
-
       return enqueueErrorSnackbar({
         errorMessage: "Provided Game ID does not match the expected one",
       });

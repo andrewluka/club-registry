@@ -7,7 +7,7 @@ const ipcRenderer: IpcRenderer = window.require("electron").ipcRenderer;
 interface BorrowerAndGame {
   game_id: GameID;
   user_id: UserID;
-
+  date_borrowed: number;
   game_name: string;
   user_name: string;
 }

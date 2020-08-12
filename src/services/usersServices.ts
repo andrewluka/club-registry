@@ -3,6 +3,8 @@ import {
   UserID,
   UpdateUserNameOptions,
   AddUserOptions,
+  UpdateUserPhoneNumberOptions,
+  UpdateUserDateOfBirthOptions,
 } from "../typings/user";
 import { IpcRenderer } from "electron";
 
@@ -27,3 +29,11 @@ export const unsuspendUser = (user_id: UserID): boolean =>
 
 export const addUser = (options: AddUserOptions): boolean =>
   ipcRenderer.sendSync("addUser", options);
+
+export const updateUserPhoneNumber = (
+  options: UpdateUserPhoneNumberOptions
+): boolean => ipcRenderer.sendSync("updateUserPhoneNumber", options);
+
+export const updateUserDateOfBirth = (
+  options: UpdateUserDateOfBirthOptions
+): boolean => ipcRenderer.sendSync("updateUserDateOfBirth", options);

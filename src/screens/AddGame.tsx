@@ -3,7 +3,7 @@ import { jsx, css } from "@emotion/core";
 import { Fragment, useState, FC } from "react";
 import { AppBar } from "../components/AppBar";
 import { QRScannerTextField } from "../components/QRScannerTextField";
-import { Button, Typography } from "@material-ui/core";
+import { Button, Typography, Chip } from "@material-ui/core";
 import { useTheme } from "@material-ui/core/styles";
 import { addGame } from "../services/gamesServices";
 import { useErrorSnackbar } from "../hooks/useErrorSnackbar";
@@ -51,15 +51,14 @@ export const AddGame = () => {
             <li>
               tags:{" "}
               {tags.length > 0
-                ? tags.flatMap((tag, index) => [
-                    <Typography
-                      key={tag}
-                      css={{ color: muiTheme.palette.primary.main }}
-                    >
-                      {tag}
-                    </Typography>,
-                    index === tags.length - 1 ? "" : ", ",
-                  ])
+                ? tags.map((tag, index) => (
+                    <Fragment key={tag}>
+                      <span css={{ color: muiTheme.palette.primary.main }}>
+                        {tag}
+                      </span>
+                      {index !== tags.length - 1 && ", "}
+                    </Fragment>
+                  ))
                 : undefinedElement}
             </li>
           </ul>

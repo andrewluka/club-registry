@@ -10,6 +10,7 @@ import { BorrowGame } from "./screens/BorrowGame";
 import { ReturnGame } from "./screens/ReturnGame";
 import { AddUser } from "./screens/AddUser";
 import { useTheme } from "@material-ui/core/styles";
+import { Statistics } from "./screens/Statistics";
 
 const App: React.FC = () => {
   const theme = useTheme();
@@ -40,6 +41,7 @@ const App: React.FC = () => {
         ></div>
 
         <Switch>
+          <Route path={Routes.STATISTICS} component={Statistics} />
           <Route path={Routes.USERS} component={Users} />
           <Route path={Routes.GAMES} component={Games} />
           <Route path={Routes.BORROW_GAME} component={BorrowGame} />

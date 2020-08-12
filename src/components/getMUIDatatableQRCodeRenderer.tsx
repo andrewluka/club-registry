@@ -1,10 +1,13 @@
 /** @jsx jsx */
 import { jsx } from "@emotion/core";
-import { Fragment } from "react";
-import { MUIDatatableRenderer } from "../typings/muiDatatable";
+import { Fragment, useState } from "react";
+import {
+  MUIDatatableRenderer,
+  MUIDatatableRendererArgsAsProps,
+} from "../typings/muiDatatable";
 import { Tooltip, IconButton } from "@material-ui/core";
 import { QRCodeIcon } from "./QRCodeIcon";
-import { QRCodeModal } from "./QRCodeModal";
+import { DownloadQRCodeDialog } from "./DownloadQRCodeDialog";
 
 interface Options {
   qrCodeValueIndex?: number;
@@ -13,13 +16,14 @@ interface Options {
 export const getMUIDatatableQRCodeRenderer = (options?: Options) => {
   const { qrCodeValueIndex = 0 } = options || {};
 
-  const MUIDatatableQRCodeRenderer: MUIDatatableRenderer<boolean> = (
-    isModalOpen,
+  const QRCodeModalComponent = ({
+    value,
     tableMeta,
-    setIsModalOpen
-  ) => {
-    isModalOpen = typeof isModalOpen === "boolean" ? isModalOpen : false;
-    const value = tableMeta.rowData[qrCodeValueIndex];
+  }: MUIDatatableRendererArgsAsProps<boolean>) => {
+    const [isModalOpen, setIsModalOpen] = useState(
+      typeof value === "boolean" ? value : false
+    );
+    const qrCodeValue = tableMeta.rowData[qrCodeValueIndex];
 
     const openModal = () => setIsModalOpen(true as any);
     const closeModal = () => setIsModalOpen(false as any);
@@ -27,10 +31,10 @@ export const getMUIDatatableQRCodeRenderer = (options?: Options) => {
     return (
       <Fragment>
         {isModalOpen && (
-          <QRCodeModal
+          <DownloadQRCodeDialog
             onClose={closeModal}
             open={isModalOpen}
-            qrCodeValue={String(value)}
+            qrCodeValue={String(qrCodeValue)}
           />
         )}
         <Tooltip title="Generate QR Code">
@@ -41,6 +45,18 @@ export const getMUIDatatableQRCodeRenderer = (options?: Options) => {
       </Fragment>
     );
   };
+
+  const MUIDatatableQRCodeRenderer: MUIDatatableRenderer<boolean> = (
+    value,
+    tableMeta,
+    updateValue
+  ) => (
+    <QRCodeModalComponent
+      value={value}
+      updateValue={updateValue}
+      tableMeta={tableMeta}
+    />
+  );
 
   return MUIDatatableQRCodeRenderer;
 };

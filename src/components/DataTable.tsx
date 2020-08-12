@@ -6,26 +6,31 @@ import MUIDataTable, {
 import { useErrorSnackbar } from "../hooks/useErrorSnackbar";
 import { useSuccessSnackbar } from "../hooks/useSuccessSnackbar";
 
-interface BaseProps<T> {
-  rows: T[];
+interface BaseProps<Row> {
+  rows: Row[];
   columns: MUIDataTableColumnDef[];
   title: string;
+  customSearch?: (
+    searchQuery: string,
+    currentRow: any[],
+    columns: any[]
+  ) => boolean;
 }
 
-interface RemovalProps<T> extends BaseProps<T> {
-  getRowId: (row: T) => number;
+interface RemovalProps<Row> extends BaseProps<Row> {
+  getRowId: (row: Row) => number;
   remove: (id: number) => boolean;
 }
 
-type Props<T> = BaseProps<T> | RemovalProps<T>;
+type Props<Row> = BaseProps<Row> | RemovalProps<Row>;
 
 export type DataTableColumnDef = MUIDataTableColumnDef;
 
-export const DataTable = <T extends object | number[] | string[]>(
-  props: Props<T>
+export const DataTable = <Row extends object | number[] | string[]>(
+  props: Props<Row>
 ) => {
-  const { rows, columns, title } = props;
-  const { getRowId, remove } = props as RemovalProps<T>;
+  const { rows, columns, title, customSearch } = props;
+  const { getRowId, remove } = props as RemovalProps<Row>;
 
   const isRemovingAllowed = !!(getRowId && remove);
 
@@ -40,7 +45,6 @@ export const DataTable = <T extends object | number[] | string[]>(
         selectableRows: isRemovingAllowed ? "single" : "none",
         onRowsDelete: isRemovingAllowed
           ? ({ data: rowsToDelete }) => {
-              console.log({ rowsToDelete, rows });
               const id = getRowId(rows[rowsToDelete[0].dataIndex]);
               const isDeleteSuccessful = remove(id);
 
@@ -52,7 +56,8 @@ export const DataTable = <T extends object | number[] | string[]>(
               }
             }
           : undefined,
-        customSearchRender: debounceSearchRender(500),
+        customSearchRender: debounceSearchRender(200),
+        ...(customSearch ? { customSearch } : {}),
         print: false,
       }}
       title={title}

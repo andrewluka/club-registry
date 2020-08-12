@@ -4,6 +4,7 @@ import { MUIDatatableRenderer } from "../typings/muiDatatable";
 import { Checkbox } from "@material-ui/core";
 import { MUIDataTableMeta } from "mui-datatables";
 import { useErrorSnackbar } from "../hooks/useErrorSnackbar";
+import { useState } from "react";
 
 interface Options {
   unsuspend: (id: number) => boolean;
@@ -16,46 +17,44 @@ export const getMUIDatatableIsSuspendedRenderer = ({
   suspend,
   idIndex = 0,
 }: Options) => {
-  const CheckboxComponent = <T extends any>({
-    tableMeta,
-    updateValue,
-    value,
-  }: {
-    value: T;
-    tableMeta: MUIDataTableMeta;
-    updateValue: (value: string) => void;
-  }) => {
-    const { enqueueErrorSnackbar } = useErrorSnackbar();
-    return (
-      <Checkbox
-        color="secondary"
-        checked={!!value}
-        onChange={() => {
-          const id = tableMeta.rowData[idIndex];
-          const operationDidSucceed = value ? unsuspend(id) : suspend(id);
-
-          if (operationDidSucceed) {
-            updateValue(!value as any);
-          } else {
-            enqueueErrorSnackbar();
-          }
-        }}
-      />
-    );
-  };
-
   const MUIDatatableIsSuspendedRenderer: MUIDatatableRenderer<boolean> = (
     value,
-    tableMeta,
-    updateValue
+    tableMeta
   ) => {
-    return (
-      <CheckboxComponent
-        value={value}
-        tableMeta={tableMeta}
-        updateValue={updateValue}
-      />
-    );
+    const CheckboxComponent = <T extends any>({
+      tableMeta,
+      value,
+    }: {
+      value: T;
+      tableMeta: MUIDataTableMeta;
+    }) => {
+      const [isChecked, setIsChecked] = useState(!!value);
+      const { enqueueErrorSnackbar } = useErrorSnackbar();
+
+      return (
+        <Checkbox
+          color="secondary"
+          checked={!!isChecked}
+          onChange={(event) => {
+            const isChecked = event.target.checked;
+            const id = tableMeta.rowData[idIndex];
+            const operationDidSucceed = isChecked ? suspend(id) : unsuspend(id);
+
+            if (operationDidSucceed) {
+              setIsChecked(isChecked);
+            } else {
+              enqueueErrorSnackbar({
+                errorMessage: isChecked
+                  ? "Couldn't do that; check borrowed games and users"
+                  : "Couldn't do that",
+              });
+            }
+          }}
+        />
+      );
+    };
+
+    return <CheckboxComponent value={value} tableMeta={tableMeta} />;
   };
 
   return MUIDatatableIsSuspendedRenderer;

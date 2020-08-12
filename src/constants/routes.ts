@@ -6,6 +6,7 @@ export enum Routes {
   ADD_GAME = "/add-game",
   RETURN_GAME_BASE = "/return-game",
   ADD_USER = "/add-user",
+  STATISTICS = "/statistics",
 }
 
 export enum ReturnGameQueryParams {

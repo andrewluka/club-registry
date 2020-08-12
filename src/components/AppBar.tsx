@@ -31,8 +31,6 @@ export const AppBar = (props: Props) => {
 
   const muiTheme = useMuiTheme();
 
-  // console.log(muiTheme);
-
   return (
     <MuiAppBar
       position="fixed"

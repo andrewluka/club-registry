@@ -4,7 +4,7 @@ import { TextField } from "@material-ui/core";
 import { MUIDatatableRenderer } from "../typings/muiDatatable";
 import { useErrorSnackbar } from "../hooks/useErrorSnackbar";
 import { useSuccessSnackbar } from "../hooks/useSuccessSnackbar";
-import { useState } from "react";
+import { useState, ChangeEvent } from "react";
 import { MUIDataTableMeta } from "mui-datatables";
 
 interface Options {
@@ -20,74 +20,67 @@ export const getMUIDatatableEditableRenderer = function ({
   update,
   get,
 }: Options) {
-  interface Props<T> {
-    value: T;
-    tableMeta: MUIDataTableMeta;
-    updateValue: (value: string) => void;
-  }
-
-  // const theme = useTheme<Theme>();
-
-  // const { primaryColor, primaryTextColor } = theme;
-
-  const InputComponent = <T extends any>({
-    value,
-    tableMeta,
-    updateValue,
-  }: Props<T>) => {
-    const [isError, setIsError] = useState(false);
-    const { enqueueErrorSnackbar } = useErrorSnackbar();
-    const { enqueueSuccessSnackbar } = useSuccessSnackbar();
-
-    return (
-      <TextField
-        color="primary"
-        // classes={classes}
-        error={isError}
-        type="text"
-        value={value}
-        onChange={(event) => {
-          const newValue = event.target.value;
-
-          if (!validateInput(newValue)) {
-            setIsError(true);
-            return;
-          }
-
-          setIsError(false);
-          updateValue(newValue);
-        }}
-        onBlur={(event) => {
-          const newValue = event.target.value;
-          const id = tableMeta.rowData[idIndex];
-
-          if (newValue === get(id)) return;
-
-          const wasOperationSuccessful = update({ id, newValue });
-
-          if (!wasOperationSuccessful) {
-            enqueueErrorSnackbar({ errorMessage: "Couldn't change that" });
-          } else {
-            enqueueSuccessSnackbar();
-          }
-        }}
-      />
-    );
-  };
-
   const MUIDatatableEditableRenderer: MUIDatatableRenderer<string> = (
     value,
     tableMeta,
     updateValue
   ) => {
-    return (
-      <InputComponent
-        value={value}
-        tableMeta={tableMeta}
-        updateValue={updateValue}
-      />
-    );
-  };
+    const id = tableMeta.rowData[idIndex];
 
+    const InputComponent = () => {
+      const [isError, setError] = useState(false);
+      const [formValue, setFormValue] = useState(value || "");
+
+      const { enqueueErrorSnackbar } = useErrorSnackbar();
+      const { enqueueSuccessSnackbar } = useSuccessSnackbar();
+
+      const onChange = (
+        event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+      ) => {
+        const newValue = event.target.value;
+        if (validateInput(newValue)) {
+          setFormValue(newValue);
+          setError(false);
+        } else {
+          setError(true);
+        }
+      };
+
+      return (
+        <TextField
+          error={isError}
+          value={formValue}
+          onChange={onChange}
+          onBlur={(event) => {
+            const newValue = event.target.value;
+
+            if (newValue === get(id)) return;
+
+            if (validateInput(newValue)) {
+              setFormValue(newValue);
+              setError(false);
+
+              // updateValue(newValue);
+              const wasOperationSuccessful = update({
+                id,
+                newValue,
+              });
+
+              wasOperationSuccessful
+                ? enqueueSuccessSnackbar({ successMessage: "Field updated" })
+                : enqueueErrorSnackbar({
+                    errorMessage: "Couldn't update field",
+                  });
+            } else {
+              setError(true);
+            }
+          }}
+          color="primary"
+        />
+      );
+    };
+
+    return <InputComponent />;
+  };
   return MUIDatatableEditableRenderer;
 };

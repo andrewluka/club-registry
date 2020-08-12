@@ -21,3 +21,13 @@ export interface UpdateUserNameOptions {
   user_id: UserID;
   newName: string;
 }
+
+export interface UpdateUserPhoneNumberOptions {
+  user_id: UserID;
+  newPhoneNumber: string;
+}
+
+export interface UpdateUserDateOfBirthOptions {
+  user_id: UserID;
+  newDateOfBirth: number | null;
+}

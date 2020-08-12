@@ -19,7 +19,7 @@ export const SnackbarContent: FC<Props> = ({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        width: 400,
+        minWidth: 400,
         maxHeight: 30,
       }}
     >
