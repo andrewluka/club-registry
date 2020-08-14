@@ -1,10 +1,11 @@
+import { expect } from "chai";
 import Database from "better-sqlite3";
 import GamesService from "./GamesService";
 import { Game } from "../../src/typings/game";
 import UsersService from "./UsersService";
 import { GAMES_TAGS_DELIMITER } from "../../src/constants/tables";
 
-test("GamesService#addGame", () => {
+test("GamesService#addGame", function () {
   const db = Database(":memory:");
   const gamesService = new GamesService(db);
 
@@ -18,14 +19,14 @@ test("GamesService#addGame", () => {
 
   const tags = game?.tags?.split(GAMES_TAGS_DELIMITER);
 
-  expect(game?.name).toBe(name);
-  expect(game?.is_suspended).toBe(0);
-  expect(game?.borrowing).toBe(null);
-  expect(tags?.[0]).toBe(tag);
-  expect(tags?.length).toBe(1);
-  expect(game_id).toBeGreaterThanOrEqual(0);
-  expect(Number(game?.game_id)).toBe(game_id);
-  expect(typeof game?.date_of_addition).toBe("number");
+  expect(game?.name).to.equal(name);
+  expect(game?.is_suspended).to.equal(0);
+  expect(game?.borrowing).to.equal(null);
+  expect(tags?.[0]).to.equal(tag);
+  expect(tags?.length).to.equal(1);
+  expect(game_id).to.be.greaterThan(0);
+  expect(Number(game?.game_id)).to.equal(game_id);
+  expect(game?.date_of_addition).to.be.a("number");
 });
 
 test("GamesService#getGame", () => {
@@ -37,22 +38,30 @@ test("GamesService#getGame", () => {
   const game_id = gamesService.addGame({ name });
   const game = gamesService.getGame(game_id);
 
-  expect(game?.name).toBe(name);
+  expect(game?.name).to.equal(name);
 });
 
-test("GamesService#removeGame removes game", () => {
+test("GamesService#removeGame removes game and its borrowing data", () => {
   const db = Database(":memory:");
   const gamesService = new GamesService(db);
+  const usersService = new UsersService(db);
 
   const game_id = gamesService.addGame({ name: "name" });
+  const user_id = usersService.addUser({ name: "random user" });
+
+  gamesService.borrowGame({ borrower: user_id, game: game_id });
+  gamesService.returnGame({ borrower: user_id, game: game_id });
 
   gamesService.removeGame(Number(game_id));
 
-  const gameExists = !!db
-    .prepare("SELECT * FROM games WHERE game_id = ?")
-    .all(game_id)[0];
+  const borrowings = db
+    .prepare("SELECT * FROM borrowings WHERE game_id = ?")
+    .all(game_id);
 
-  expect(gameExists).toBe(false);
+  expect(borrowings.length).to.equal(0);
+
+  const gameExists = gamesService.gameExists(game_id);
+  expect(gameExists).to.be.false;
 });
 
 test("GamesService#removeGame throws when game does not exist", () => {
@@ -67,7 +76,7 @@ test("GamesService#removeGame throws when game does not exist", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("GamesService#removeGame throws when game has been borrowed", () => {
@@ -88,7 +97,7 @@ test("GamesService#removeGame throws when game has been borrowed", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("GamesService#isGameBorrowed returns correct boolean value", () => {
@@ -100,12 +109,10 @@ test("GamesService#isGameBorrowed returns correct boolean value", () => {
   const user_id = usersService.addUser({ name: "random name" });
 
   gamesService.borrowGame({ borrower: user_id, game: game_id });
-
-  expect(gamesService.isGameBorrowed(game_id)).toBe(true);
+  expect(gamesService.isGameBorrowed(game_id)).to.be.true;
 
   const game_id2 = gamesService.addGame({ name: "name" });
-
-  expect(gamesService.isGameBorrowed(game_id2)).toBe(false);
+  expect(gamesService.isGameBorrowed(game_id2)).to.be.false;
 });
 
 test("GamesService#isGameBorrowed throws when game does not exist", () => {
@@ -120,7 +127,7 @@ test("GamesService#isGameBorrowed throws when game does not exist", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("GamesService#gameExists", () => {
@@ -129,8 +136,8 @@ test("GamesService#gameExists", () => {
 
   const game_id = gamesService.addGame({ name: "random name" });
 
-  expect(gamesService.gameExists(game_id)).toBe(true);
-  expect(gamesService.gameExists(645)).toBe(false);
+  expect(gamesService.gameExists(game_id)).to.be.true;
+  expect(gamesService.gameExists(645)).to.be.false;
 });
 
 test("GamesService#suspendGame suspends game", () => {
@@ -144,7 +151,7 @@ test("GamesService#suspendGame suspends game", () => {
     .prepare(`SELECT * FROM games WHERE game_id = ?`)
     .all(game_id)[0];
 
-  expect(game?.is_suspended).toBe(1);
+  expect(game?.is_suspended).to.equal(1);
 });
 
 test("GamesService#suspendGame throws when game does not exist", () => {
@@ -159,7 +166,7 @@ test("GamesService#suspendGame throws when game does not exist", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("GamesService#unsuspendGame unsuspends game", () => {
@@ -174,7 +181,7 @@ test("GamesService#unsuspendGame unsuspends game", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 
   const game_id = gamesService.addGame({ name: "name" });
 
@@ -185,7 +192,7 @@ test("GamesService#unsuspendGame unsuspends game", () => {
     .prepare(`SELECT is_suspended FROM games WHERE game_id = ?`)
     .all(game_id)[0];
 
-  expect(is_suspended).toBe(0);
+  expect(is_suspended).to.equal(0);
 });
 
 test("GamesService#unsuspendGame throws when game does not exist", () => {
@@ -200,7 +207,7 @@ test("GamesService#unsuspendGame throws when game does not exist", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("GamesService#borrowGame throws when user does not exist", () => {
@@ -217,7 +224,7 @@ test("GamesService#borrowGame throws when user does not exist", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("GamesService#borrowGame throws when game does not exist", () => {
@@ -235,7 +242,7 @@ test("GamesService#borrowGame throws when game does not exist", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("GamesService#borrowGame throws when game has already \
@@ -290,7 +297,7 @@ been borrowed", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("GamesService#borrowGame throws when user has already \
@@ -345,7 +352,7 @@ borrowed a game", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("GamesService#returnGame 'unlinks' user and game", () => {
@@ -359,8 +366,8 @@ test("GamesService#returnGame 'unlinks' user and game", () => {
   gamesService.borrowGame({ borrower: user_id, game: game_id });
   gamesService.returnGame({ borrower: user_id, game: game_id });
 
-  expect(gamesService.isGameBorrowed(game_id)).toBe(false);
-  expect(usersService.hasUserBorrowedGame(user_id)).toBe(false);
+  expect(gamesService.isGameBorrowed(game_id)).to.be.false;
+  expect(usersService.hasUserBorrowedGame(user_id)).to.be.false;
 });
 
 test("GamesService#returnGame accepts only \
@@ -383,7 +390,7 @@ matching game and user and throws otherwise", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("GamesService#getAllGames", () => {
@@ -396,8 +403,8 @@ test("GamesService#getAllGames", () => {
 
   const games = gamesService.getAllGames();
 
-  expect(games.length).toBe(1);
-  expect(games[0].name).toBe(name);
+  expect(games.length).to.equal(1);
+  expect(games[0].name).to.equal(name);
 });
 
 test("GamesService#createNotifierTriggers", () => {
@@ -411,13 +418,13 @@ test("GamesService#createNotifierTriggers", () => {
   gamesService.createNotifierTriggers(inc);
 
   const game_id = gamesService.addGame({ name: "name" });
-  expect(x).toBe(1);
+  expect(x).to.equal(1);
 
   db.prepare("UPDATE games SET name = ?").run("lol");
-  expect(x).toBe(2);
+  expect(x).to.equal(2);
 
   gamesService.removeGame(game_id);
-  expect(x).toBe(3);
+  expect(x).to.equal(3);
 });
 
 test("GamesService#updateGameName", () => {
@@ -429,7 +436,7 @@ test("GamesService#updateGameName", () => {
 
   gamesService.updateGameName({ game_id, newName });
 
-  expect(gamesService.getGame(game_id)?.name).toBe(newName);
+  expect(gamesService.getGame(game_id)?.name).to.equal(newName);
 });
 
 test("GamesService#updateGameName throws when game doesn't exist", () => {
@@ -444,7 +451,7 @@ test("GamesService#updateGameName throws when game doesn't exist", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("GamesService#updateGameTags completely overrides old tags \
@@ -464,8 +471,8 @@ and removes duplicates from new ones", () => {
   const expectedTags = [...new Set(tags)];
   const actualTags = game?.tags?.split(GAMES_TAGS_DELIMITER);
 
-  expect(actualTags?.length).toBe(2);
-  expect(actualTags).toEqual(expectedTags);
+  expect(actualTags?.length).to.equal(2);
+  expect(actualTags).to.deep.equal(expectedTags);
 });
 
 test("GamesService#updateGameTags throws when game \
@@ -481,7 +488,7 @@ does not exist", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("GamesService#getAllGameTags", () => {
@@ -496,5 +503,5 @@ test("GamesService#getAllGameTags", () => {
   gamesService.addGame({ name: "random name1", tags: tags1 });
   gamesService.addGame({ name: "random name2", tags: tags2 });
 
-  expect(gamesService.getAllGameTags().sort()).toStrictEqual(allTags);
+  expect(gamesService.getAllGameTags().sort()).to.deep.equal(allTags);
 });

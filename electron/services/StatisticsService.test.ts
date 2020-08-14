@@ -1,3 +1,4 @@
+import { expect } from "chai";
 import GamesService from "./GamesService";
 import Database from "better-sqlite3";
 import UsersService from "./UsersService";
@@ -25,7 +26,7 @@ test("StatisticsService#getAllBorrowings", () => {
   }
 
   const borrowings = statisticsService.getAllBorrowings().length;
-  expect(borrowings).toBe(expectedNumOfBorrowings);
+  expect(borrowings).to.equal(expectedNumOfBorrowings);
 });
 
 test("StatisticsService#getUserStatistics", () => {
@@ -74,11 +75,11 @@ test("StatisticsService#getUserStatistics", () => {
 
   const statistics = statisticsService.getUserStatistics(borrower);
 
-  expect(statistics.allBorrowings.length).toBe(expected.borrowingsCount);
-  expect(statistics.gamesBorrowingsCount).toStrictEqual(
+  expect(statistics.allBorrowings.length).to.equal(expected.borrowingsCount);
+  expect(statistics.gamesBorrowingsCount).to.deep.equal(
     expected.gamesBorrowingsCount
   );
-  expect(statistics.tagsBorrowedCount).toStrictEqual(
+  expect(statistics.tagsBorrowedCount).to.deep.equal(
     expected.tagsBorrowedCount
   );
 });
@@ -113,8 +114,8 @@ test("StatisticsService#getGameStatistics", () => {
 
   const statistics = statisticsService.getGameStatistics(game);
 
-  expect(statistics.allBorrowings.length).toBe(expected.allBorrowingsCount);
-  expect(statistics.borrowersCount).toEqual(statistics.borrowersCount);
+  expect(statistics.allBorrowings.length).to.equal(expected.allBorrowingsCount);
+  expect(statistics.borrowersCount).to.deep.equal(statistics.borrowersCount);
 });
 
 test("StatisticsService#getTagsCount", () => {
@@ -148,6 +149,6 @@ test("StatisticsService#getTagsCount", () => {
     }
 
     const statistics = statisticsService.getTagsCount();
-    expect(statistics).toStrictEqual(expectedTagsCount);
+    expect(statistics).to.deep.equal(expectedTagsCount);
   }
 });

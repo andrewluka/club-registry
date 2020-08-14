@@ -1,3 +1,4 @@
+import { expect } from "chai";
 import UsersService from "./UsersService";
 import Database from "better-sqlite3";
 import GamesService from "./GamesService";
@@ -14,12 +15,12 @@ test("UsersService#addUser adds user", () => {
 
   const user = usersService.getUser(user_id);
 
-  expect(user?.name).toBe(name);
-  expect(user?.date_of_birth).toBe(date_of_birth);
-  expect(user?.phone_number).toBe(phone_number);
-  expect(user_id).toBeGreaterThanOrEqual(0);
-  expect(Number(user?.user_id)).toBe(user_id);
-  expect(typeof user?.date_of_addition).toBe("number");
+  expect(user?.name).to.equal(name);
+  expect(user?.date_of_birth).to.equal(date_of_birth);
+  expect(user?.phone_number).to.equal(phone_number);
+  expect(user_id).to.be.greaterThan(-1);
+  expect(Number(user?.user_id)).to.equal(user_id);
+  expect(user?.date_of_addition).to.be.a("number");
 });
 
 test("UsersService#getUser gets user", () => {
@@ -34,9 +35,9 @@ test("UsersService#getUser gets user", () => {
 
   const user = usersService.getUser(user_id);
 
-  expect(user?.name).toBe(name);
-  expect(user?.date_of_birth).toBe(date_of_birth);
-  expect(user?.phone_number).toBe(phone_number);
+  expect(user?.name).to.equal(name);
+  expect(user?.date_of_birth).to.equal(date_of_birth);
+  expect(user?.phone_number).to.equal(phone_number);
 });
 
 test("UsersService#removeUser removes user", () => {
@@ -57,7 +58,7 @@ test("UsersService#removeUser removes user", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("UsersService#removeUser throws when user does not exist", () => {
@@ -72,7 +73,7 @@ test("UsersService#removeUser throws when user does not exist", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("UsersService#hasUserBorrowedGame", () => {
@@ -88,14 +89,14 @@ test("UsersService#hasUserBorrowedGame", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 
   const game_id = gamesService.addGame({ name: "game name" });
   const user_id = usersService.addUser({ name: "user name" });
 
   gamesService.borrowGame({ borrower: user_id, game: game_id });
 
-  expect(usersService.hasUserBorrowedGame(user_id)).toBe(true);
+  expect(usersService.hasUserBorrowedGame(user_id)).to.be.true;
 });
 
 test("UsersService#userExists returns correct boolean value", () => {
@@ -104,8 +105,8 @@ test("UsersService#userExists returns correct boolean value", () => {
 
   const user_id = usersService.addUser({ name: "name" });
 
-  expect(usersService.userExists(user_id)).toBe(true);
-  expect(usersService.userExists(645)).toBe(false);
+  expect(usersService.userExists(user_id)).to.be.true;
+  expect(usersService.userExists(645)).to.be.false;
 });
 
 test("UsersService#suspendUser suspends user", () => {
@@ -117,7 +118,7 @@ test("UsersService#suspendUser suspends user", () => {
   usersService.suspendUser(user_id);
 
   const { is_suspended } = usersService.getUser(user_id) || {};
-  expect(is_suspended).toBe(1);
+  expect(is_suspended).to.equal(1);
 });
 
 test("UsersService#suspendUser throws when user does not exist", () => {
@@ -132,7 +133,7 @@ test("UsersService#suspendUser throws when user does not exist", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("UsersService#suspendUser throws when user has borrowed a game", () => {
@@ -153,7 +154,7 @@ test("UsersService#suspendUser throws when user has borrowed a game", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("UsersService#unsuspendUser unsuspends user", () => {
@@ -166,7 +167,7 @@ test("UsersService#unsuspendUser unsuspends user", () => {
   usersService.unsuspendUser(user_id);
 
   const { is_suspended } = usersService.getUser(user_id) || {};
-  expect(is_suspended).toBe(0);
+  expect(is_suspended).to.equal(0);
 });
 
 test("UsersService#unsuspendUser throws when user does not exist", () => {
@@ -181,7 +182,7 @@ test("UsersService#unsuspendUser throws when user does not exist", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });
 
 test("UsersService#getAllUsers", () => {
@@ -194,8 +195,8 @@ test("UsersService#getAllUsers", () => {
 
   const users = usersService.getAllUsers();
 
-  expect(users.length).toBe(1);
-  expect(users[0].name).toBe(name);
+  expect(users.length).to.equal(1);
+  expect(users[0].name).to.equal(name);
 });
 
 test("UsersService#createNotifierTriggers", () => {
@@ -209,13 +210,13 @@ test("UsersService#createNotifierTriggers", () => {
   usersService.createNotifierTriggers(inc);
 
   const game_id = usersService.addUser({ name: "name" });
-  expect(x).toBe(1);
+  expect(x).to.equal(1);
 
   db.prepare("UPDATE users SET name = ?").run("lol");
-  expect(x).toBe(2);
+  expect(x).to.equal(2);
 
   usersService.removeUser(game_id);
-  expect(x).toBe(3);
+  expect(x).to.equal(3);
 });
 
 test("UsersService#updateUserName", () => {
@@ -227,7 +228,7 @@ test("UsersService#updateUserName", () => {
 
   usersService.updateUserName({ user_id, newName });
 
-  expect(usersService.getUser(user_id)?.name).toBe(newName);
+  expect(usersService.getUser(user_id)?.name).to.equal(newName);
 });
 
 test("UsersService#updateUserName throws when user doesn't exist", () => {
@@ -242,5 +243,5 @@ test("UsersService#updateUserName throws when user doesn't exist", () => {
     e = e_;
   }
 
-  expect(e).toBeTruthy();
+  expect(Boolean(e)).to.be.true;
 });

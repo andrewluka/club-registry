@@ -1,3 +1,4 @@
+import { expect } from "chai";
 import SettingsService from "./SettingsService";
 import tempDirectory from "temp-dir";
 import { join } from "path";
@@ -11,7 +12,7 @@ test("SettingsService#settingsPath is correct", () => {
   const settingsPath = join(settingsDirPath, settingsFileName);
   const settingsService = new SettingsService(settingsPath);
 
-  expect(settingsService.settingsPath).toBe(settingsPath);
+  expect(settingsService.settingsPath).to.equal(settingsPath);
 });
 
 test("SettingsService#getSettings gets settings", () => {
@@ -22,12 +23,12 @@ test("SettingsService#getSettings gets settings", () => {
   const settingsPath = join(settingsDirPath, settingsFileName);
   const settingsService = new SettingsService(settingsPath);
 
-  expect(settingsService.getSettings()).toEqual({});
+  expect(settingsService.getSettings()).to.deep.equal({});
 
   const expectedSettings = { someOptionA: "some value" };
   writeFileSync(settingsPath, JSON.stringify(expectedSettings));
 
-  expect(settingsService.getSettings()).toEqual(expectedSettings);
+  expect(settingsService.getSettings()).to.deep.equal(expectedSettings);
 });
 
 test("SettingsService#updateSettings updates settings correctly", () => {
@@ -39,16 +40,16 @@ test("SettingsService#updateSettings updates settings correctly", () => {
   const settingsService = new SettingsService(settingsPath);
 
   settingsService.updateSettings({});
-  expect(settingsService.getSettings()).toEqual({});
+  expect(settingsService.getSettings()).to.deep.equal({});
 
   const oldSettings = { a: { b: "C" } };
   settingsService.updateSettings(oldSettings);
-  expect(settingsService.getSettings()).toEqual(oldSettings);
+  expect(settingsService.getSettings()).to.deep.equal(oldSettings);
 
   const newSettings = { a: { b: "C", d: "E" } };
   settingsService.updateSettings((oldSettings) => ({
     ...oldSettings,
     a: { ...oldSettings.a, d: "E" },
   }));
-  expect(settingsService.getSettings()).toEqual(newSettings);
+  expect(settingsService.getSettings()).to.deep.equal(newSettings);
 });
