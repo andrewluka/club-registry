@@ -1,18 +1,15 @@
 import { Database } from "better-sqlite3";
 import TablesService from "./TablesService";
-import { Borrowing } from "../../src/typings/statistics";
+import {
+  Borrowing,
+  BorrowingID,
+  BorrowingAndGameData,
+} from "../../src/typings/statistics";
 import { UserID } from "../../src/typings/user";
 import { GameID } from "../../src/typings/game";
 import { GAMES_TAGS_DELIMITER } from "../../src/constants/tables";
-
-export interface BorrowingAndGameData {
-  borrower_id: UserID;
-  game_id: GameID;
-  date_borrowed: number;
-  date_returned: number;
-  name: string;
-  tags: string;
-}
+import GamesService from "./GamesService";
+import UsersService from "./UsersService";
 
 export type StatisticsFilter = (borrowing: BorrowingAndGameData) => boolean;
 export type CountingRecord<KeyType extends number | string> = Record<
@@ -47,6 +44,17 @@ export default class StatisticsService {
     tablesService.createTables();
   }
 
+  getBorrowing = (
+    borrowing_id: BorrowingID
+  ): BorrowingAndGameData | undefined =>
+    this._getAllBorrowings("borrowing_id = ?", borrowing_id)[0];
+
+  getUserBorrowings = (user_id: UserID) =>
+    this._getAllBorrowings("borrower_id = ?", user_id);
+
+  getGameBorrowings = (game_id: GameID) =>
+    this._getAllBorrowings("game_id = ?", game_id);
+
   private _getAllBorrowings = (
     whereClauseConditions?: string,
     ...bindParams: any[]
@@ -56,6 +64,7 @@ export default class StatisticsService {
         `
         SELECT 
           borrowings.borrower_id,
+          borrowings.borrowing_id,
           borrowings.game_id,
           borrowings.date_borrowed,
           borrowings.date_returned,
@@ -88,6 +97,11 @@ export default class StatisticsService {
     user_id: UserID,
     filterForWholeStatistics?: StatisticsFilter
   ): UserStatistics => {
+    const usersService = new UsersService(this.db);
+
+    if (!usersService.userExists(user_id))
+      throw new Error(`No such user with user_id ${user_id}`);
+
     const getBorrowings = () =>
       this._getAllBorrowings("borrower_id = ?", user_id);
     const allBorrowings = filterForWholeStatistics
@@ -112,6 +126,11 @@ export default class StatisticsService {
     game_id: GameID,
     filterForWholeStatistics?: StatisticsFilter
   ): GameStatistics => {
+    const gamesService = new GamesService(this.db);
+
+    if (!gamesService.gameExists(game_id))
+      throw new Error(`No such game with game_id ${game_id}`);
+
     const getBorrowings = () =>
       this._getAllBorrowings("games.game_id = ?", game_id);
     const allBorrowings = filterForWholeStatistics

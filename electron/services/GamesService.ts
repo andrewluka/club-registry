@@ -10,6 +10,7 @@ import {
 import { GAMES_TAGS_DELIMITER } from "../../src/constants/tables";
 import UsersService from "./UsersService";
 import TablesService from "./TablesService";
+import { BorrowingID } from "../../src/typings/statistics";
 
 interface UpdateGameColumnOptions<T> {
   game_id: GameID;
@@ -99,7 +100,10 @@ export default class GamesService {
     });
   };
 
-  borrowGame = ({ borrower, game }: BorrowAndReturnGameOptions) => {
+  borrowGame = ({
+    borrower,
+    game,
+  }: BorrowAndReturnGameOptions): BorrowingID => {
     const usersService = new UsersService(this.db);
 
     if (this.isGameBorrowed(game)) {
@@ -152,10 +156,12 @@ export default class GamesService {
 
         updateUserStatement.run({ borrower, borrowing });
         updateGameStatement.run({ borrowing, game });
+
+        return Number(borrowing);
       }
     );
 
-    borrowGameTransaction.default({ borrower, game });
+    return borrowGameTransaction.default({ borrower, game });
   };
 
   returnGame = ({ game, borrower }: BorrowAndReturnGameOptions) => {

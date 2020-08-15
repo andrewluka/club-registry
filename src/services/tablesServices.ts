@@ -1,16 +1,7 @@
-import { UserID } from "../typings/user";
-import { GameID } from "../typings/game";
 import { IpcRenderer } from "electron";
+import { BorrowerAndGame } from "../typings/statistics";
 
 const ipcRenderer: IpcRenderer = window.require("electron").ipcRenderer;
 
-interface BorrowerAndGame {
-  game_id: GameID;
-  user_id: UserID;
-  date_borrowed: number;
-  game_name: string;
-  user_name: string;
-}
-
-export const getBorrowersAndGames = (): BorrowerAndGame[] =>
-  ipcRenderer.sendSync("getBorrowersAndGames");
+export const getCurrentBorrowersAndGames = (): BorrowerAndGame[] =>
+  ipcRenderer.sendSync("getCurrentBorrowersAndGames");

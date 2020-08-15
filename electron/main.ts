@@ -52,6 +52,10 @@ let win: BrowserWindow | null = null;
 
 const db = Database(join(getAppDataDir(), "database.db"));
 
+const closeDB = (db: InstanceType<typeof Database>) => {
+  if (db.open) db.close();
+};
+
 const tablesService = new TablesService(db);
 const usersService = new UsersService(db);
 const gamesService = new GamesService(db);
@@ -71,7 +75,10 @@ const settingsService = new SettingsService<Settings>(
 );
 
 registerIpcGetter("getSettings", settingsService.getSettings);
-registerIpcGetter("getBorrowersAndGames", tablesService.getBorrowersAndGames);
+registerIpcGetter(
+  "getCurrentBorrowersAndGames",
+  tablesService.getCurrentBorrowersAndGames
+);
 registerIpcGetter("getAllUsers", usersService.getAllUsers);
 registerIpcGetter("getAllGames", gamesService.getAllGames);
 registerIpcGetter("getGame", gamesService.getGame);
@@ -151,6 +158,7 @@ app.on("ready", createWindow);
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
+    closeDB(db);
   }
 });
 
@@ -159,3 +167,5 @@ app.on("activate", () => {
     createWindow();
   }
 });
+
+process.on("exit", () => closeDB(db));

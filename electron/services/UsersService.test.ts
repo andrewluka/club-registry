@@ -2,246 +2,309 @@ import { expect } from "chai";
 import UsersService from "./UsersService";
 import Database from "better-sqlite3";
 import GamesService from "./GamesService";
+import StatisticsService from "./StatisticsService";
+
+describe("UsersService", function () {
+  describe("#addUser", function () {
+    it("should add user's data", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
+
+      const name = "ME";
+      const date_of_birth = null;
+      const phone_number = "20193932";
+
+      const user_id = usersService.addUser({
+        name,
+        date_of_birth,
+        phone_number,
+      });
+
+      const user = usersService.getUser(user_id);
+
+      expect(user?.name).to.equal(name);
+      expect(user?.date_of_birth).to.equal(date_of_birth);
+      expect(user?.phone_number).to.equal(phone_number);
+      expect(user_id).to.be.greaterThan(-1);
+      expect(Number(user?.user_id)).to.equal(user_id);
+      expect(user?.date_of_addition).to.be.a("number");
+    });
+  });
+
+  describe("#getUser", function () {
+    it("should return all the data of the user with the given user_id", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
+
+      const name = "ME";
+      const date_of_birth = null;
+      const phone_number = "20193932";
+
+      const user_id = usersService.addUser({
+        name,
+        date_of_birth,
+        phone_number,
+      });
+
+      const user = usersService.getUser(user_id);
+
+      expect(user?.name).to.equal(name);
+      expect(user?.date_of_birth).to.equal(date_of_birth);
+      expect(user?.phone_number).to.equal(phone_number);
+    });
+
+    it("should return undefined if there is no user with the given user_id", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
+
+      expect(usersService.getUser(769)).to.be.undefined;
+    });
+  });
+
+  describe("#removeUser", function () {
+    it("should remove user and all of the user's borrowing data", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
+      const gamesService = new GamesService(db);
+      const statisticsService = new StatisticsService(db);
+
+      const game_id = gamesService.addGame({ name: "game name" });
+      const user_id = usersService.addUser({ name: "user name" });
 
-test("UsersService#addUser adds user", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
+      gamesService.borrowGame({ borrower: user_id, game: game_id });
+      gamesService.returnGame({ borrower: user_id, game: game_id });
+
+      const userBorrowings = statisticsService.getUserBorrowings(user_id);
+
+      expect(userBorrowings.length).to.equal(0);
+      expect(usersService.getUser(user_id)).to.be.undefined;
+    });
+
+    it("should throw if user has borrowed a game", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
+      const gamesService = new GamesService(db);
+
+      let e: any;
 
-  const name = "ME";
-  const date_of_birth = null;
-  const phone_number = "20193932";
+      const game_id = gamesService.addGame({ name: "game name" });
+      const user_id = usersService.addUser({ name: "user name" });
 
-  const user_id = usersService.addUser({ name, date_of_birth, phone_number });
+      gamesService.borrowGame({ borrower: user_id, game: game_id });
+
+      try {
+        usersService.removeUser(Number(user_id));
+      } catch (e_) {
+        e = e_;
+      }
 
-  const user = usersService.getUser(user_id);
+      expect(Boolean(e)).to.be.true;
+    });
 
-  expect(user?.name).to.equal(name);
-  expect(user?.date_of_birth).to.equal(date_of_birth);
-  expect(user?.phone_number).to.equal(phone_number);
-  expect(user_id).to.be.greaterThan(-1);
-  expect(Number(user?.user_id)).to.equal(user_id);
-  expect(user?.date_of_addition).to.be.a("number");
-});
+    it("should throw when user does not exist", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
 
-test("UsersService#getUser gets user", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
+      let e: any;
 
-  const name = "ME";
-  const date_of_birth = null;
-  const phone_number = "20193932";
+      try {
+        usersService.removeUser(8);
+      } catch (e_) {
+        e = e_;
+      }
 
-  const user_id = usersService.addUser({ name, date_of_birth, phone_number });
+      expect(Boolean(e)).to.be.true;
+    });
+  });
 
-  const user = usersService.getUser(user_id);
+  describe("#hasUserBorrowedGame", function () {
+    it("should return the correct boolean value", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
+      const gamesService = new GamesService(db);
 
-  expect(user?.name).to.equal(name);
-  expect(user?.date_of_birth).to.equal(date_of_birth);
-  expect(user?.phone_number).to.equal(phone_number);
-});
+      const game_id = gamesService.addGame({ name: "game name" });
+      const user_id = usersService.addUser({ name: "user name" });
 
-test("UsersService#removeUser removes user", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
-  const gamesService = new GamesService(db);
+      gamesService.borrowGame({ borrower: user_id, game: game_id });
+      expect(usersService.hasUserBorrowedGame(user_id)).to.be.true;
 
-  let e: any;
+      gamesService.returnGame({ borrower: user_id, game: game_id });
+      expect(usersService.hasUserBorrowedGame(user_id)).to.be.false;
+    });
 
-  const game_id = gamesService.addGame({ name: "game name" });
-  const user_id = usersService.addUser({ name: "user name" });
+    it("should throw if user does not exist", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
 
-  gamesService.borrowGame({ borrower: user_id, game: game_id });
+      let e: any;
 
-  try {
-    usersService.removeUser(Number(user_id));
-  } catch (e_) {
-    e = e_;
-  }
+      try {
+        usersService.hasUserBorrowedGame(98);
+      } catch (e_) {
+        e = e_;
+      }
 
-  expect(Boolean(e)).to.be.true;
-});
+      expect(Boolean(e)).to.be.true;
+    });
+  });
 
-test("UsersService#removeUser throws when user does not exist", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
+  describe("#userExists", function () {
+    it("should return correct boolean value", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
 
-  let e: any;
+      const user_id = usersService.addUser({ name: "name" });
 
-  try {
-    usersService.removeUser(8);
-  } catch (e_) {
-    e = e_;
-  }
+      expect(usersService.userExists(user_id)).to.be.true;
+      expect(usersService.userExists(645)).to.be.false;
+    });
+  });
 
-  expect(Boolean(e)).to.be.true;
-});
+  describe("#suspendUser", function () {
+    it("should suspend user by setting is_suspended to 1 (true)", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
 
-test("UsersService#hasUserBorrowedGame", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
-  const gamesService = new GamesService(db);
+      const user_id = usersService.addUser({ name: "user" });
 
-  let e: any;
+      usersService.suspendUser(user_id);
 
-  try {
-    usersService.hasUserBorrowedGame(98);
-  } catch (e_) {
-    e = e_;
-  }
+      const { is_suspended } = usersService.getUser(user_id) || {};
+      expect(is_suspended).to.equal(1);
+    });
 
-  expect(Boolean(e)).to.be.true;
+    it("should throw if user does not exist", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
 
-  const game_id = gamesService.addGame({ name: "game name" });
-  const user_id = usersService.addUser({ name: "user name" });
+      let e: any;
 
-  gamesService.borrowGame({ borrower: user_id, game: game_id });
+      try {
+        usersService.suspendUser(87);
+      } catch (e_) {
+        e = e_;
+      }
 
-  expect(usersService.hasUserBorrowedGame(user_id)).to.be.true;
-});
+      expect(Boolean(e)).to.be.true;
+    });
 
-test("UsersService#userExists returns correct boolean value", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
+    it("should throw if user has borrowed a game", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
+      const gamesService = new GamesService(db);
 
-  const user_id = usersService.addUser({ name: "name" });
+      const game_id = gamesService.addGame({ name: "game" });
+      const user_id = usersService.addUser({ name: "user" });
 
-  expect(usersService.userExists(user_id)).to.be.true;
-  expect(usersService.userExists(645)).to.be.false;
-});
+      gamesService.borrowGame({ borrower: user_id, game: game_id });
 
-test("UsersService#suspendUser suspends user", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
+      let e: any;
 
-  const user_id = usersService.addUser({ name: "user" });
+      try {
+        usersService.suspendUser(user_id);
+      } catch (e_) {
+        e = e_;
+      }
 
-  usersService.suspendUser(user_id);
+      expect(Boolean(e)).to.be.true;
+    });
+  });
 
-  const { is_suspended } = usersService.getUser(user_id) || {};
-  expect(is_suspended).to.equal(1);
-});
+  describe("#unsuspendUser", function () {
+    it("should unsuspend user by setting is_suspended to 0 (false)", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
 
-test("UsersService#suspendUser throws when user does not exist", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
+      const user_id = usersService.addUser({ name: "m" });
 
-  let e: any;
+      usersService.suspendUser(user_id);
+      usersService.unsuspendUser(user_id);
 
-  try {
-    usersService.suspendUser(87);
-  } catch (e_) {
-    e = e_;
-  }
+      const { is_suspended } = usersService.getUser(user_id) || {};
+      expect(is_suspended).to.equal(0);
+    });
 
-  expect(Boolean(e)).to.be.true;
-});
+    it("should throw when user does not exist", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
 
-test("UsersService#suspendUser throws when user has borrowed a game", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
-  const gamesService = new GamesService(db);
+      let e: any;
 
-  const game_id = gamesService.addGame({ name: "game" });
-  const user_id = usersService.addUser({ name: "user" });
+      try {
+        usersService.unsuspendUser(87);
+      } catch (e_) {
+        e = e_;
+      }
 
-  gamesService.borrowGame({ borrower: user_id, game: game_id });
+      expect(Boolean(e)).to.be.true;
+    });
+  });
 
-  let e: any;
+  describe("#getAllUsers", function () {
+    it("should return all users' data", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
 
-  try {
-    usersService.suspendUser(user_id);
-  } catch (e_) {
-    e = e_;
-  }
+      const name = "me";
 
-  expect(Boolean(e)).to.be.true;
-});
+      usersService.addUser({ name });
 
-test("UsersService#unsuspendUser unsuspends user", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
+      const users = usersService.getAllUsers();
 
-  const user_id = usersService.addUser({ name: "m" });
+      expect(users.length).to.equal(1);
+      expect(users[0].name).to.equal(name);
+    });
+  });
 
-  usersService.suspendUser(user_id);
-  usersService.unsuspendUser(user_id);
+  describe("#createNotifierTriggers", function () {
+    it("should create temp triggers on insert, update and delete", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
 
-  const { is_suspended } = usersService.getUser(user_id) || {};
-  expect(is_suspended).to.equal(0);
-});
+      let x = 0;
 
-test("UsersService#unsuspendUser throws when user does not exist", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
+      const inc = () => (x += 1);
 
-  let e: any;
+      usersService.createNotifierTriggers(inc);
 
-  try {
-    usersService.unsuspendUser(87);
-  } catch (e_) {
-    e = e_;
-  }
+      const game_id = usersService.addUser({ name: "name" });
+      expect(x).to.equal(1);
 
-  expect(Boolean(e)).to.be.true;
-});
+      db.prepare("UPDATE users SET name = ?").run("lol");
+      expect(x).to.equal(2);
 
-test("UsersService#getAllUsers", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
+      usersService.removeUser(game_id);
+      expect(x).to.equal(3);
+    });
+  });
 
-  const name = "me";
+  describe("#updateUserName", function () {
+    it("should update user's name to new name", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
 
-  usersService.addUser({ name });
+      const user_id = usersService.addUser({ name: "random name here" });
+      const newName = "new name";
 
-  const users = usersService.getAllUsers();
+      usersService.updateUserName({ user_id, newName });
 
-  expect(users.length).to.equal(1);
-  expect(users[0].name).to.equal(name);
-});
+      expect(usersService.getUser(user_id)?.name).to.equal(newName);
+    });
 
-test("UsersService#createNotifierTriggers", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
+    it("should throw if user does not exist", function () {
+      const db = Database(":memory:");
+      const usersService = new UsersService(db);
 
-  let x = 0;
+      let e: any;
 
-  const inc = () => (x += 1);
+      try {
+        usersService.updateUserName({ user_id: 7, newName: "not there :(" });
+      } catch (e_) {
+        e = e_;
+      }
 
-  usersService.createNotifierTriggers(inc);
-
-  const game_id = usersService.addUser({ name: "name" });
-  expect(x).to.equal(1);
-
-  db.prepare("UPDATE users SET name = ?").run("lol");
-  expect(x).to.equal(2);
-
-  usersService.removeUser(game_id);
-  expect(x).to.equal(3);
-});
-
-test("UsersService#updateUserName", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
-
-  const user_id = usersService.addUser({ name: "random name here" });
-  const newName = "new name";
-
-  usersService.updateUserName({ user_id, newName });
-
-  expect(usersService.getUser(user_id)?.name).to.equal(newName);
-});
-
-test("UsersService#updateUserName throws when user doesn't exist", () => {
-  const db = Database(":memory:");
-  const usersService = new UsersService(db);
-
-  let e: any;
-
-  try {
-    usersService.updateUserName({ user_id: 7, newName: "not there :(" });
-  } catch (e_) {
-    e = e_;
-  }
-
-  expect(Boolean(e)).to.be.true;
+      expect(Boolean(e)).to.be.true;
+    });
+  });
 });
