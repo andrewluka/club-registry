@@ -1,6 +1,5 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import { join } from "path";
-import * as isDev from "electron-is-dev";
 import SettingsService from "./services/SettingsService";
 import { Settings } from "../src/typings/settings";
 import Database from "better-sqlite3";
@@ -17,6 +16,8 @@ import StatisticsService from "./services/StatisticsService";
 import AttendanceService from "./services/AttendanceService";
 import { ErrorWrapper } from "../src/typings/tables";
 import getAppDataDir from "./utils/getAppDataDir";
+
+const isDev = !app.isPackaged;
 
 if (!("toJSON" in Error.prototype))
   Object.defineProperty(Error.prototype, "toJSON", {
@@ -157,13 +158,15 @@ function createWindow() {
   win = new BrowserWindow({
     width: 800,
     height: 600,
-    minWidth: 400,
+    minWidth: 800,
     minHeight: 250,
     webPreferences: {
       nodeIntegration: true,
       enableRemoteModule: true,
     },
   });
+
+  win.setTitle("Club Registry");
 
   win.setMenu(null);
 

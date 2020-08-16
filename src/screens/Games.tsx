@@ -21,18 +21,12 @@ import { getMUIDatatableEditableRenderer } from "../components/getMUIDatatableEd
 import { getMUIDatatableQRCodeRenderer } from "../components/getMUIDatatableQRCodeRenderer";
 import { DataTable, DataTableColumnDef } from "../components/DataTable";
 import { useQrCodeFilesGenerator } from "../hooks/useQrCodeFilesGenerator";
-import { GAMES_TAGS_DELIMITER } from "../constants/tables";
 import { useTheme } from "@material-ui/core/styles";
-import { Chip, Tooltip, IconButton } from "@material-ui/core";
-import { usePromptDialog } from "../hooks/usePromptDialog";
-import { Game, GameID } from "../typings/game";
-import { TagsAutoComplete } from "../components/TagsAutoComplete";
+import { Game } from "../typings/game";
 import { useTags } from "../hooks/useTags";
 import { getDataTableIsSuspendedOptions } from "../utils/getDataTableIsSuspendedOptions";
 import { getMUIDatatableGameTagsRenderer } from "../components/getMUIDatatableGameTagsRenderer";
 import { getDataTableFilterTagsOptions } from "../utils/getDataTableFilterTagsOptions";
-import moment from "moment";
-import { SPELLED_OUT_DATE_AND_TIME_FORMAT } from "../constants/dates";
 import { getDateOfAdditionColumnDef } from "../utils/getDateOfAdditionColumnDef";
 import { getDateSearcher } from "../utils/getDateSearcher";
 import { useHistory } from "react-router-dom";
@@ -43,7 +37,6 @@ export const Games = () => {
   const history = useHistory();
   const { data: rows } = useGames();
   const { generateQrCodes } = useQrCodeFilesGenerator();
-  const { prompt } = usePromptDialog();
   const { data: allGameTags } = useTags();
 
   const gamesToMap = (games: Game[]) => {

@@ -52,7 +52,12 @@ export const DownloadQRCodeDialog: FC<Props> = ({
     <Dialog open={open}>
       <DialogTitle>Download QR Code?</DialogTitle>
       <DialogContent>
-        <img src={qrCodeSvgUri} width={iconSize} height={iconSize} />
+        <img
+          src={qrCodeSvgUri}
+          alt="QR code"
+          width={iconSize}
+          height={iconSize}
+        />
       </DialogContent>
       <DialogActions>
         <Button onClick={() => onClose()}>Cancel</Button>

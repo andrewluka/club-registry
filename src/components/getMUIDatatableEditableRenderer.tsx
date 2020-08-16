@@ -5,7 +5,6 @@ import { MUIDatatableRenderer } from "../typings/muiDatatable";
 import { useErrorSnackbar } from "../hooks/useErrorSnackbar";
 import { useSuccessSnackbar } from "../hooks/useSuccessSnackbar";
 import { useState, ChangeEvent } from "react";
-import { MUIDataTableMeta } from "mui-datatables";
 import { ErrorWrapper } from "../typings/tables";
 
 interface Options {

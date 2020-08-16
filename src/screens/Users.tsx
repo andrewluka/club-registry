@@ -31,7 +31,6 @@ import { useSuccessSnackbar } from "../hooks/useSuccessSnackbar";
 import { MaterialUiPickersDate } from "@material-ui/pickers/typings/date";
 import { isNumOrEmpty } from "../utils/isNumOrEmpty";
 import { getDataTableIsSuspendedOptions } from "../utils/getDataTableIsSuspendedOptions";
-import { isNotNullOrUndefined } from "../utils/isNotNullOrUndefined";
 import { getDateOfAdditionColumnDef } from "../utils/getDateOfAdditionColumnDef";
 import { getDateSearcher } from "../utils/getDateSearcher";
 import { useHistory } from "react-router-dom";

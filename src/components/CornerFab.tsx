@@ -2,9 +2,7 @@
 import { jsx } from "@emotion/core";
 import { Tooltip, Fab } from "@material-ui/core";
 import { Fragment, FC } from "react";
-import { useHistory } from "react-router-dom";
 import { SvgIconComponent } from "@material-ui/icons";
-import { Routes } from "../constants/routes";
 
 interface Props {
   tooltipTitle?: string;
@@ -13,7 +11,6 @@ interface Props {
 }
 
 export const CornerFab: FC<Props> = ({ Icon, tooltipTitle, onClick }) => {
-  const history = useHistory();
   const TooltipComponent = tooltipTitle ? Tooltip : Fragment;
 
   return (

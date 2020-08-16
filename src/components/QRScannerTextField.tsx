@@ -6,7 +6,6 @@ import {
   Tooltip,
   StandardTextFieldProps,
 } from "@material-ui/core";
-import { ThemeProvider, createMuiTheme } from "@material-ui/core/styles";
 import { FC, useState, Fragment } from "react";
 import { QRCodeIcon } from "./QRCodeIcon";
 import QrReader from "react-qr-reader";

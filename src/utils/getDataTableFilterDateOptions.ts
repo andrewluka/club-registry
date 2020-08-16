@@ -2,7 +2,6 @@ import { MUIDataTableColumnOptions } from "mui-datatables";
 import moment, { Moment } from "moment";
 import {
   ORDINAL_DAYS_OF_THE_MONTH,
-  HOURS_WITH_MERIDIAN,
   MONTH_FULL_NAMES,
   YEARS_IN_FULL,
   HOURS_12,

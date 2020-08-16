@@ -14,8 +14,10 @@ import {
 import { SnackbarProvider } from "notistack";
 import { MuiPickersUtilsProvider } from "@material-ui/pickers";
 import MomentUtils from "@date-io/moment";
+import { Settings } from "./typings/settings";
 
-const themeOptions = getSettings()?.theme || defaultLightTheme;
+const themeOptions =
+  (getSettings()?.payload as Settings)?.theme || defaultLightTheme;
 
 const muiTheme = createMuiTheme({
   overrides: {

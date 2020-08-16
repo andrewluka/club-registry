@@ -24,7 +24,7 @@ function ms2time(timeInMs: number) {
 }
 
 export const CurrentSessionData = () => {
-  const { timeElapsed } = useTimer(
+  const {} = useTimer(
     getCurrentSession()?.payload?.session_start || Date.now()
   );
   const { data: isThereOpenSession } = useIsThereOpenSession();
