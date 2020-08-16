@@ -10,43 +10,52 @@ import GamesService from "./services/GamesService";
 import {
   GAMES_CHANGED_CHANNEL,
   USERS_CHANGED_CHANNEL,
+  SESSIONS_CHANNEL_CHANGED,
+  ATTENDANCE_CHANNEL_CHANGED,
 } from "../src/constants/tables";
+import StatisticsService from "./services/StatisticsService";
+import AttendanceService from "./services/AttendanceService";
+import { ErrorWrapper } from "../src/typings/tables";
+import getAppDataDir from "./utils/getAppDataDir";
+
+if (!("toJSON" in Error.prototype))
+  Object.defineProperty(Error.prototype, "toJSON", {
+    value: function () {
+      var alt = {};
+
+      Object.getOwnPropertyNames(this).forEach(function (key) {
+        // @ts-ignore
+        alt[key] = this[key];
+      }, this);
+
+      return alt;
+    },
+    configurable: true,
+    writable: true,
+  });
 
 // import installExtension, {
 //   REACT_DEVELOPER_TOOLS,
 // } from "electron-devtools-installer";
 
-const registerIpcGetter = <FnParams extends any[], FnReturnType>(
+const registerIpcFunc = <FnParams extends any[], FnReturnType>(
   channel: string,
-  getter: (...args: FnParams) => FnReturnType
-) =>
-  ipcMain.on(channel, (evt, ...args) => {
-    evt.returnValue = getter(...(args as FnParams));
-  });
-
-const registerIpcSetter = <FnParams extends any[]>(
-  channel: string,
-  setter: (...args: FnParams) => void
+  func: (...args: FnParams) => FnReturnType
 ) =>
   ipcMain.on(channel, (evt, ...args) => {
     try {
-      setter(...(args as FnParams));
-      evt.returnValue = true;
+      evt.returnValue = {
+        payload: func(...(args as FnParams)),
+        isError: false,
+      } as ErrorWrapper<FnReturnType>;
     } catch (e) {
-      console.log(e);
-      evt.returnValue = false;
+      console.error(e);
+      evt.returnValue = {
+        isError: true,
+        payload: e,
+      } as ErrorWrapper<any>;
     }
   });
-
-const getAppDataDir = () => {
-  return join(
-    process.env.APPDATA ||
-      (process.platform == "darwin"
-        ? process.env.HOME + "/Library/Preferences"
-        : process.env.HOME + "/.local/share"),
-    "club-registry"
-  );
-};
 
 let win: BrowserWindow | null = null;
 
@@ -59,6 +68,8 @@ const closeDB = (db: InstanceType<typeof Database>) => {
 const tablesService = new TablesService(db);
 const usersService = new UsersService(db);
 const gamesService = new GamesService(db);
+const statisticsService = new StatisticsService(db);
+const attendanceService = new AttendanceService(db);
 
 const onGamesChanged = () => {
   win?.webContents.send(GAMES_CHANGED_CHANNEL);
@@ -66,42 +77,81 @@ const onGamesChanged = () => {
 const onUsersChanged = () => {
   win?.webContents.send(USERS_CHANGED_CHANNEL);
 };
+const onSessionsChanged = () => {
+  win?.webContents.send(SESSIONS_CHANNEL_CHANGED);
+};
+const onAttendanceChanged = () => {
+  win?.webContents.send(ATTENDANCE_CHANNEL_CHANGED);
+};
 
 usersService.createNotifierTriggers(onUsersChanged);
 gamesService.createNotifierTriggers(onGamesChanged);
+attendanceService.createSessionsNotifierTriggers(onSessionsChanged);
 
 const settingsService = new SettingsService<Settings>(
   join(getAppDataDir(), "settings.json")
 );
 
-registerIpcGetter("getSettings", settingsService.getSettings);
-registerIpcGetter(
+// Games
+registerIpcFunc("getAllGames", gamesService.getAllGames);
+registerIpcFunc("getGame", gamesService.getGame);
+registerIpcFunc("getAllGameTags", gamesService.getAllGameTags);
+
+registerIpcFunc("suspendGame", gamesService.suspendGame);
+registerIpcFunc("unsuspendGame", gamesService.unsuspendGame);
+registerIpcFunc("removeGame", gamesService.removeGame);
+registerIpcFunc("addGame", gamesService.addGame);
+registerIpcFunc("updateGameName", gamesService.updateGameName);
+registerIpcFunc("borrowGame", gamesService.borrowGame);
+registerIpcFunc("updateGameTags", gamesService.updateGameTags);
+registerIpcFunc("returnGame", gamesService.returnGame);
+
+// Users
+registerIpcFunc("getAllUsers", usersService.getAllUsers);
+registerIpcFunc("getUser", usersService.getUser);
+
+registerIpcFunc("removeUser", usersService.removeUser);
+registerIpcFunc("updateUserName", usersService.updateUserName);
+registerIpcFunc("suspendUser", usersService.suspendUser);
+registerIpcFunc("unsuspendUser", usersService.unsuspendUser);
+registerIpcFunc("addUser", usersService.addUser);
+registerIpcFunc("updateUserPhoneNumber", usersService.updateUserPhoneNumber);
+registerIpcFunc("updateUserDateOfBirth", usersService.updateUserDateOfBirth);
+
+// Statistics
+registerIpcFunc("getAllBorrowings", statisticsService.getAllBorrowings);
+registerIpcFunc("getBorrowing", statisticsService.getBorrowing);
+registerIpcFunc("getGameBorrowings", statisticsService.getGameBorrowings);
+registerIpcFunc("getGameStatistics", statisticsService.getGameStatistics);
+registerIpcFunc("getTagsCount", statisticsService.getTagsCount);
+registerIpcFunc("getUserBorrowings", statisticsService.getUserBorrowings);
+registerIpcFunc("getUserStatistics", statisticsService.getUserStatistics);
+
+// Attendance
+registerIpcFunc("closeSession", attendanceService.closeSession);
+registerIpcFunc(
+  "markUserForCurrentSession",
+  attendanceService.markUserForCurrentSession
+);
+registerIpcFunc("startSession", attendanceService.startSession);
+
+registerIpcFunc("isThereOpenSession", attendanceService.isThereOpenSession);
+registerIpcFunc(
+  "getUserAttendanceData",
+  attendanceService.getUserAttendanceData
+);
+registerIpcFunc("getSession", attendanceService.getSession);
+registerIpcFunc("getCurrentSession", attendanceService.getCurrentSession);
+registerIpcFunc("getAllAttendanceData", attendanceService.getAllAttendanceData);
+registerIpcFunc("getAllSessions", attendanceService.getAllSessions);
+
+// Others
+registerIpcFunc("updateSettings", settingsService.updateSettings);
+registerIpcFunc("getSettings", settingsService.getSettings);
+registerIpcFunc(
   "getCurrentBorrowersAndGames",
   tablesService.getCurrentBorrowersAndGames
 );
-registerIpcGetter("getAllUsers", usersService.getAllUsers);
-registerIpcGetter("getAllGames", gamesService.getAllGames);
-registerIpcGetter("getGame", gamesService.getGame);
-registerIpcGetter("getUser", usersService.getUser);
-registerIpcGetter("getGameTypes", gamesService.getAllGameTags);
-registerIpcGetter("getAllGameTags", gamesService.getAllGameTags);
-
-registerIpcSetter("suspendGame", gamesService.suspendGame);
-registerIpcSetter("unsuspendGame", gamesService.unsuspendGame);
-registerIpcSetter("removeGame", gamesService.removeGame);
-registerIpcSetter("addGame", gamesService.addGame);
-registerIpcSetter("updateGameName", gamesService.updateGameName);
-registerIpcSetter("borrowGame", gamesService.borrowGame);
-registerIpcSetter("removeUser", usersService.removeUser);
-registerIpcSetter("updateUserName", usersService.updateUserName);
-registerIpcSetter("suspendUser", usersService.suspendUser);
-registerIpcSetter("unsuspendUser", usersService.unsuspendUser);
-registerIpcSetter("returnGame", gamesService.returnGame);
-registerIpcSetter("addUser", usersService.addUser);
-registerIpcSetter("updateGameTags", gamesService.updateGameTags);
-registerIpcSetter("updateUserPhoneNumber", usersService.updateUserPhoneNumber);
-registerIpcSetter("updateUserDateOfBirth", usersService.updateUserDateOfBirth);
-registerIpcSetter("updateSettings", settingsService.updateSettings);
 
 function createWindow() {
   win = new BrowserWindow({

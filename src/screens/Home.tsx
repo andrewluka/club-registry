@@ -1,12 +1,12 @@
 /** @jsx jsx */
 import { jsx } from "@emotion/core";
-import React from "react";
+import { Fragment } from "react";
 import BorrowGameIcon from "@material-ui/icons/Games";
 import { AppBar } from "../components/AppBar";
 import { Drawer } from "../components/Drawer";
-import { TableWrapper } from "../components/TableWrapper";
+import { ContentWrapper } from "../components/ContentWrapper";
 import { Routes, ReturnGameQueryParams } from "../constants/routes";
-import { RedirectCornerFab } from "../components/RedirectCornerFab";
+import { CornerFab } from "../components/CornerFab";
 import { useBorrowersAndGames } from "../hooks/useBorrowersAndGames";
 import { IconButton, Tooltip } from "@material-ui/core";
 import ReturnIcon from "@material-ui/icons/Replay";
@@ -15,9 +15,13 @@ import { DataTable, DataTableColumnDef } from "../components/DataTable";
 import moment from "moment";
 import { SPELLED_OUT_DATE_AND_TIME_FORMAT } from "../constants/dates";
 import { getDataTableDateFilterOptions } from "../utils/getDataTableFilterDateOptions";
+import { getDateSearcher } from "../utils/getDateSearcher";
+import { useIsThereOpenSession } from "../hooks/useIsThereOpenSession";
+import { CurrentSessionData } from "../components/CurrentSessionData";
 
 export const Home = () => {
   const { data: rows } = useBorrowersAndGames();
+  const { data: isThereOpenSession } = useIsThereOpenSession();
   const history = useHistory();
 
   const columns: DataTableColumnDef[] = [
@@ -66,17 +70,28 @@ export const Home = () => {
   ];
 
   return (
-    <React.Fragment>
+    <Fragment>
       <AppBar title="Home" />
       <Drawer />
-      <TableWrapper>
-        <DataTable title="Games borrowed" columns={columns} rows={rows} />
-        <RedirectCornerFab
-          tooltipTitle="Borrow game"
-          redirectUrl={Routes.BORROW_GAME}
-          Icon={BorrowGameIcon}
+      <ContentWrapper>
+        <CurrentSessionData />
+        <DataTable
+          title="Games borrowed"
+          columns={columns}
+          customSearch={getDateSearcher({
+            namesOfColumnsWithDates: ["date_borrowed"],
+          })}
+          rows={rows}
         />
-      </TableWrapper>
-    </React.Fragment>
+
+        {isThereOpenSession && (
+          <CornerFab
+            tooltipTitle="Borrow game"
+            onClick={() => history.push(Routes.BORROW_GAME)}
+            Icon={BorrowGameIcon}
+          />
+        )}
+      </ContentWrapper>
+    </Fragment>
   );
 };

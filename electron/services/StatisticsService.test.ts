@@ -2,12 +2,11 @@ import { expect } from "chai";
 import GamesService from "./GamesService";
 import Database from "better-sqlite3";
 import UsersService from "./UsersService";
-import StatisticsService, {
-  UserStatistics,
-  GameStatistics,
-  CountingRecord,
-} from "./StatisticsService";
+import StatisticsService from "./StatisticsService";
+import { UserStatistics, CountingRecord } from "../../src/typings/statistics";
+
 import { GAMES_TAGS_DELIMITER } from "../../src/constants/tables";
+import AttendanceService from "./AttendanceService";
 
 describe("StatisticsService", function () {
   describe("#getAllBorrowings", function () {
@@ -16,6 +15,9 @@ describe("StatisticsService", function () {
       const gamesService = new GamesService(db);
       const usersService = new UsersService(db);
       const statisticsService = new StatisticsService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const expectedNumOfBorrowings = 9;
 
@@ -43,6 +45,9 @@ describe("StatisticsService", function () {
       const gamesService = new GamesService(db);
       const usersService = new UsersService(db);
       const statisticsService = new StatisticsService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const tags = "abcdef".split("");
 
@@ -117,6 +122,9 @@ describe("StatisticsService", function () {
       const gamesService = new GamesService(db);
       const usersService = new UsersService(db);
       const statisticsService = new StatisticsService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const game = gamesService.addGame({ name: "name" });
 
@@ -167,6 +175,9 @@ describe("StatisticsService", function () {
       const gamesService = new GamesService(db);
       const usersService = new UsersService(db);
       const statisticsService = new StatisticsService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const tags = "abcdefg".split("");
 

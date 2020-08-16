@@ -1,10 +1,10 @@
 /** @jsx jsx */
-import { Fragment, useState, CSSProperties } from "react";
+import { Fragment, useState } from "react";
 import { jsx } from "@emotion/core";
 import { AppBar } from "../components/AppBar";
 import { Drawer } from "../components/Drawer";
-import { TableWrapper } from "../components/TableWrapper";
-import { RedirectCornerFab } from "../components/RedirectCornerFab";
+import { ContentWrapper } from "../components/ContentWrapper";
+import { CornerFab } from "../components/CornerFab";
 import { Routes } from "../constants/routes";
 import AddIcon from "@material-ui/icons/Add";
 import {
@@ -15,7 +15,7 @@ import {
   getGame,
   updateGameTags,
 } from "../services/gamesServices";
-import { getMUIDatatableIsSuspendedRenderer } from "../components/getMUIDatatableIsSuspendedRenderer";
+import { getMUIDatatableCheckboxRenderer } from "../components/getMUIDatatableCheckboxRenderer";
 import { useGames } from "../hooks/useGames";
 import { getMUIDatatableEditableRenderer } from "../components/getMUIDatatableEditableRenderer";
 import { getMUIDatatableQRCodeRenderer } from "../components/getMUIDatatableQRCodeRenderer";
@@ -31,9 +31,16 @@ import { useTags } from "../hooks/useTags";
 import { getDataTableIsSuspendedOptions } from "../utils/getDataTableIsSuspendedOptions";
 import { getMUIDatatableGameTagsRenderer } from "../components/getMUIDatatableGameTagsRenderer";
 import { getDataTableFilterTagsOptions } from "../utils/getDataTableFilterTagsOptions";
+import moment from "moment";
+import { SPELLED_OUT_DATE_AND_TIME_FORMAT } from "../constants/dates";
+import { getDateOfAdditionColumnDef } from "../utils/getDateOfAdditionColumnDef";
+import { getDateSearcher } from "../utils/getDateSearcher";
+import { useHistory } from "react-router-dom";
+import { CurrentSessionData } from "../components/CurrentSessionData";
 
 export const Games = () => {
   const theme = useTheme();
+  const history = useHistory();
   const { data: rows } = useGames();
   const { generateQrCodes } = useQrCodeFilesGenerator();
   const { prompt } = usePromptDialog();
@@ -66,7 +73,16 @@ export const Games = () => {
         customBodyRender: getMUIDatatableEditableRenderer({
           update: ({ id, newValue }) =>
             updateGameName({ game_id: id, newName: newValue }),
-          get: (id) => getGame(id)?.name || "",
+          get: (id) => {
+            const { payload, isError } = getGame(id);
+
+            if (isError) return { payload: payload, isError } as any;
+
+            return {
+              isError: false,
+              payload: String(payload?.name || ""),
+            };
+          },
         }),
         filter: false,
       },
@@ -75,13 +91,17 @@ export const Games = () => {
       name: "is_suspended",
       label: "Suspended?",
       options: {
-        customBodyRender: getMUIDatatableIsSuspendedRenderer({
-          suspend: suspendGame,
-          unsuspend: unsuspendGame,
+        customBodyRender: getMUIDatatableCheckboxRenderer({
+          check: suspendGame,
+          uncheck: unsuspendGame,
         }),
         ...getDataTableIsSuspendedOptions(),
       },
     },
+    getDateOfAdditionColumnDef({
+      extractDate: ({ date_of_addition }) => date_of_addition,
+      rows,
+    }),
     {
       name: "tags",
       label: "Tags",
@@ -135,17 +155,21 @@ export const Games = () => {
     <Fragment>
       <AppBar title="Games" />
       <Drawer />
-      <TableWrapper>
+      <ContentWrapper>
+        <CurrentSessionData />
         <DataTable
           remove={removeGame}
           getRowId={({ game_id }) => game_id}
           title="Games"
           columns={columns}
           rows={rows}
+          customSearch={getDateSearcher({
+            namesOfColumnsWithDates: ["date_of_addition"],
+          })}
         />
-      </TableWrapper>
-      <RedirectCornerFab
-        redirectUrl={Routes.ADD_GAME}
+      </ContentWrapper>
+      <CornerFab
+        onClick={() => history.push(Routes.ADD_GAME)}
         tooltipTitle="Add Game"
         Icon={AddIcon}
       />

@@ -1,32 +1,18 @@
 import { Database } from "better-sqlite3";
 import TablesService from "./TablesService";
 import {
-  Borrowing,
   BorrowingID,
   BorrowingAndGameData,
+  StatisticsFilter,
+  GameStatistics,
+  UserStatistics,
+  CountingRecord,
 } from "../../src/typings/statistics";
 import { UserID } from "../../src/typings/user";
 import { GameID } from "../../src/typings/game";
 import { GAMES_TAGS_DELIMITER } from "../../src/constants/tables";
 import GamesService from "./GamesService";
 import UsersService from "./UsersService";
-
-export type StatisticsFilter = (borrowing: BorrowingAndGameData) => boolean;
-export type CountingRecord<KeyType extends number | string> = Record<
-  KeyType,
-  number
->;
-
-export interface UserStatistics {
-  allBorrowings: BorrowingAndGameData[];
-  gamesBorrowingsCount: CountingRecord<GameID>;
-  tagsBorrowedCount: CountingRecord<string>;
-}
-
-export interface GameStatistics {
-  allBorrowings: BorrowingAndGameData[];
-  borrowersCount: CountingRecord<UserID>;
-}
 
 const getFrequencyCounter = <T>(extractor: (x: T) => string) => {
   return (a: { [thing: string]: number }, b: T) => {
@@ -47,15 +33,15 @@ export default class StatisticsService {
   getBorrowing = (
     borrowing_id: BorrowingID
   ): BorrowingAndGameData | undefined =>
-    this._getAllBorrowings("borrowing_id = ?", borrowing_id)[0];
+    this._getFilteredBorrowings("borrowing_id = ?", borrowing_id)[0];
 
   getUserBorrowings = (user_id: UserID) =>
-    this._getAllBorrowings("borrower_id = ?", user_id);
+    this._getFilteredBorrowings("borrower_id = ?", user_id);
 
   getGameBorrowings = (game_id: GameID) =>
-    this._getAllBorrowings("game_id = ?", game_id);
+    this._getFilteredBorrowings("game_id = ?", game_id);
 
-  private _getAllBorrowings = (
+  private _getFilteredBorrowings = (
     whereClauseConditions?: string,
     ...bindParams: any[]
   ): BorrowingAndGameData[] =>
@@ -78,14 +64,13 @@ export default class StatisticsService {
       )
       .all(...bindParams);
 
-  getAllBorrowings = (): Borrowing[] =>
-    this.db.prepare("SELECT * FROM borrowings").all();
+  getAllBorrowings = () => this._getFilteredBorrowings();
 
   private _countTags = (
     borrowings: BorrowingAndGameData[]
   ): CountingRecord<string> => {
     const splitBorrowingTags = ({ tags }: BorrowingAndGameData) =>
-      tags.split(GAMES_TAGS_DELIMITER);
+      tags?.split(GAMES_TAGS_DELIMITER) || [];
 
     const allTags = borrowings.flatMap(splitBorrowingTags);
     const countFrequency = getFrequencyCounter((x: string) => x);
@@ -102,11 +87,13 @@ export default class StatisticsService {
     if (!usersService.userExists(user_id))
       throw new Error(`No such user with user_id ${user_id}`);
 
-    const getBorrowings = () =>
-      this._getAllBorrowings("borrower_id = ?", user_id);
     const allBorrowings = filterForWholeStatistics
-      ? getBorrowings().filter(filterForWholeStatistics)
-      : getBorrowings();
+      ? this._getFilteredBorrowings(
+          `borrower_id = ? AND ${filterForWholeStatistics.sqliteExpression}`,
+          user_id,
+          ...[filterForWholeStatistics.bindParams]
+        )
+      : this._getFilteredBorrowings("borrower_id = ?", user_id);
 
     const extractGameId = ({ game_id }: BorrowingAndGameData) =>
       String(game_id);
@@ -131,11 +118,13 @@ export default class StatisticsService {
     if (!gamesService.gameExists(game_id))
       throw new Error(`No such game with game_id ${game_id}`);
 
-    const getBorrowings = () =>
-      this._getAllBorrowings("games.game_id = ?", game_id);
     const allBorrowings = filterForWholeStatistics
-      ? getBorrowings().filter(filterForWholeStatistics)
-      : getBorrowings();
+      ? this._getFilteredBorrowings(
+          `games.game_id = ? AND ${filterForWholeStatistics.sqliteExpression}`,
+          game_id,
+          ...[filterForWholeStatistics.bindParams]
+        )
+      : this._getFilteredBorrowings("games.game_id = ?", game_id);
 
     const extractBorrower = ({ borrower_id }: BorrowingAndGameData) =>
       String(borrower_id);
@@ -149,10 +138,12 @@ export default class StatisticsService {
   };
 
   getTagsCount = (filterForWholeStatistics?: StatisticsFilter) => {
-    const getBorrowings = () => this._getAllBorrowings();
     const allBorrowings = filterForWholeStatistics
-      ? getBorrowings().filter(filterForWholeStatistics)
-      : getBorrowings();
+      ? this._getFilteredBorrowings(
+          filterForWholeStatistics.sqliteExpression || "",
+          filterForWholeStatistics.bindParams
+        )
+      : this._getFilteredBorrowings();
 
     return this._countTags(allBorrowings);
   };

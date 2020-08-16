@@ -11,6 +11,7 @@ import { ReturnGame } from "./screens/ReturnGame";
 import { AddUser } from "./screens/AddUser";
 import { useTheme } from "@material-ui/core/styles";
 import { Statistics } from "./screens/Statistics";
+import { Attendance } from "./screens/Attendance";
 
 const App: React.FC = () => {
   const theme = useTheme();
@@ -41,6 +42,7 @@ const App: React.FC = () => {
         ></div>
 
         <Switch>
+          <Route path={Routes.ATTENDANCE} component={Attendance} />
           <Route path={Routes.STATISTICS} component={Statistics} />
           <Route path={Routes.USERS} component={Users} />
           <Route path={Routes.GAMES} component={Games} />

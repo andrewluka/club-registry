@@ -3,6 +3,7 @@ import UsersService from "./UsersService";
 import Database from "better-sqlite3";
 import GamesService from "./GamesService";
 import StatisticsService from "./StatisticsService";
+import AttendanceService from "./AttendanceService";
 
 describe("UsersService", function () {
   describe("#addUser", function () {
@@ -67,6 +68,9 @@ describe("UsersService", function () {
       const usersService = new UsersService(db);
       const gamesService = new GamesService(db);
       const statisticsService = new StatisticsService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const game_id = gamesService.addGame({ name: "game name" });
       const user_id = usersService.addUser({ name: "user name" });
@@ -74,6 +78,7 @@ describe("UsersService", function () {
       gamesService.borrowGame({ borrower: user_id, game: game_id });
       gamesService.returnGame({ borrower: user_id, game: game_id });
 
+      usersService.removeUser(user_id);
       const userBorrowings = statisticsService.getUserBorrowings(user_id);
 
       expect(userBorrowings.length).to.equal(0);
@@ -84,6 +89,9 @@ describe("UsersService", function () {
       const db = Database(":memory:");
       const usersService = new UsersService(db);
       const gamesService = new GamesService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       let e: any;
 
@@ -122,6 +130,9 @@ describe("UsersService", function () {
       const db = Database(":memory:");
       const usersService = new UsersService(db);
       const gamesService = new GamesService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const game_id = gamesService.addGame({ name: "game name" });
       const user_id = usersService.addUser({ name: "user name" });
@@ -193,6 +204,9 @@ describe("UsersService", function () {
       const db = Database(":memory:");
       const usersService = new UsersService(db);
       const gamesService = new GamesService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const game_id = gamesService.addGame({ name: "game" });
       const user_id = usersService.addUser({ name: "user" });

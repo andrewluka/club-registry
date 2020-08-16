@@ -11,5 +11,5 @@ export interface Session {
 export interface AttendanceRecord {
   attendee: UserID;
   session: SessionID;
-  attendee_arrival_datetime: number;
+  attendee_arrival_time?: number | null;
 }

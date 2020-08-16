@@ -7,33 +7,36 @@ import {
   UpdateUserDateOfBirthOptions,
 } from "../typings/user";
 import { IpcRenderer } from "electron";
+import { ErrorWrapper } from "../typings/tables";
 
 const ipcRenderer: IpcRenderer = window.require("electron").ipcRenderer;
 
-export const getAllUsers = (): User[] => ipcRenderer.sendSync("getAllUsers");
+export const getAllUsers = (): ErrorWrapper<User[]> =>
+  ipcRenderer.sendSync("getAllUsers");
 
-export const removeUser = (user_id: UserID): boolean =>
+export const removeUser = (user_id: UserID): ErrorWrapper<void> =>
   ipcRenderer.sendSync("removeUser", user_id);
 
-export const getUser = (user_id: UserID): User =>
+export const getUser = (user_id: UserID): ErrorWrapper<User> =>
   ipcRenderer.sendSync("getUser", user_id);
 
-export const updateUserName = (options: UpdateUserNameOptions): boolean =>
-  ipcRenderer.sendSync("updateUserName", options);
+export const updateUserName = (
+  options: UpdateUserNameOptions
+): ErrorWrapper<void> => ipcRenderer.sendSync("updateUserName", options);
 
-export const suspendUser = (user_id: UserID): boolean =>
+export const suspendUser = (user_id: UserID): ErrorWrapper<void> =>
   ipcRenderer.sendSync("suspendUser", user_id);
 
-export const unsuspendUser = (user_id: UserID): boolean =>
+export const unsuspendUser = (user_id: UserID): ErrorWrapper<void> =>
   ipcRenderer.sendSync("unsuspendUser", user_id);
 
-export const addUser = (options: AddUserOptions): boolean =>
+export const addUser = (options: AddUserOptions): ErrorWrapper<void> =>
   ipcRenderer.sendSync("addUser", options);
 
 export const updateUserPhoneNumber = (
   options: UpdateUserPhoneNumberOptions
-): boolean => ipcRenderer.sendSync("updateUserPhoneNumber", options);
+): ErrorWrapper<void> => ipcRenderer.sendSync("updateUserPhoneNumber", options);
 
 export const updateUserDateOfBirth = (
   options: UpdateUserDateOfBirthOptions
-): boolean => ipcRenderer.sendSync("updateUserDateOfBirth", options);
+): ErrorWrapper<void> => ipcRenderer.sendSync("updateUserDateOfBirth", options);

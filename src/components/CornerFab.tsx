@@ -8,15 +8,11 @@ import { Routes } from "../constants/routes";
 
 interface Props {
   tooltipTitle?: string;
-  redirectUrl: Routes;
+  onClick: () => void;
   Icon: SvgIconComponent;
 }
 
-export const RedirectCornerFab: FC<Props> = ({
-  Icon,
-  tooltipTitle,
-  redirectUrl,
-}) => {
+export const CornerFab: FC<Props> = ({ Icon, tooltipTitle, onClick }) => {
   const history = useHistory();
   const TooltipComponent = tooltipTitle ? Tooltip : Fragment;
 
@@ -29,7 +25,7 @@ export const RedirectCornerFab: FC<Props> = ({
           right: 20,
         }}
         color="primary"
-        onClick={() => history.push(redirectUrl)}
+        onClick={() => onClick()}
       >
         <Icon />
       </Fab>

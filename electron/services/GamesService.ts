@@ -11,6 +11,7 @@ import { GAMES_TAGS_DELIMITER } from "../../src/constants/tables";
 import UsersService from "./UsersService";
 import TablesService from "./TablesService";
 import { BorrowingID } from "../../src/typings/statistics";
+import AttendanceService from "./AttendanceService";
 
 interface UpdateGameColumnOptions<T> {
   game_id: GameID;
@@ -105,6 +106,18 @@ export default class GamesService {
     game,
   }: BorrowAndReturnGameOptions): BorrowingID => {
     const usersService = new UsersService(this.db);
+    const attendanceService = new AttendanceService(this.db);
+
+    const currentSession = attendanceService.getCurrentSession();
+
+    if (!currentSession) throw new Error("No session open");
+
+    const isUserInCurrentSession = !!this.db
+      .prepare("SELECT * FROM attendance WHERE attendee = ? AND session = ?")
+      .all(borrower, currentSession.session_id)[0];
+
+    if (!isUserInCurrentSession)
+      throw new Error("User is not marked 'present' in the current session");
 
     if (this.isGameBorrowed(game)) {
       throw new Error(`Game with game_id ${game} is already borrowed`);
@@ -121,11 +134,13 @@ export default class GamesService {
       INSERT INTO borrowings (
         borrower_id,
         game_id,
-        date_borrowed
+        date_borrowed,
+        session_when_borrowed
       ) VALUES (
         @borrower,
         @game,
-        @date_borrowed
+        @date_borrowed,
+        @session_when_borrowed
       )
       `
     );
@@ -152,6 +167,8 @@ export default class GamesService {
           borrower,
           game,
           date_borrowed: Date.now(),
+          session_when_borrowed: attendanceService.getCurrentSession()
+            ?.session_id,
         }).lastInsertRowid;
 
         updateUserStatement.run({ borrower, borrowing });

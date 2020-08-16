@@ -1,18 +1,48 @@
 import { useState, useEffect } from "react";
 import { IpcRenderer } from "electron";
+import { ErrorWrapper } from "../typings/tables";
+import { useErrorSnackbar } from "./useErrorSnackbar";
 
 const ipcRenderer: IpcRenderer = window.require("electron").ipcRenderer;
 
 interface Options<T> {
-  getData: () => T[];
+  getData: () => ErrorWrapper<T>;
   ipcChannels: string[];
+  defaultValue: T;
 }
 
-export const getIpcUsingHook = <T>({ getData, ipcChannels }: Options<T>) => {
-  const useData = () => {
-    const [data, setData] = useState(getData());
+interface DataWithRefresher<T> {
+  data: T;
+  refresh: () => void;
+}
 
-    const refresh = () => setData(getData());
+export const getIpcUsingHook = <T>({
+  getData,
+  ipcChannels,
+  defaultValue,
+}: Options<T>) => {
+  const useData = (): DataWithRefresher<T> => {
+    const { enqueueErrorSnackbar } = useErrorSnackbar();
+
+    const getDataWithErrorHandling = () => {
+      const { payload, isError } = getData();
+
+      if (isError) {
+        enqueueErrorSnackbar({
+          errorMessage:
+            (payload as any)?.message ||
+            String(payload) ||
+            "Something went wrong",
+        });
+        return defaultValue;
+      }
+
+      return payload as T;
+    };
+
+    const [data, setData] = useState(getDataWithErrorHandling());
+
+    const refresh = () => setData(getDataWithErrorHandling());
 
     useEffect(() => {
       const channels = [...new Set(ipcChannels)];

@@ -6,6 +6,7 @@ import UsersService from "./UsersService";
 import { GAMES_TAGS_DELIMITER } from "../../src/constants/tables";
 import { User } from "../../src/typings/user";
 import StatisticsService from "./StatisticsService";
+import AttendanceService from "./AttendanceService";
 
 describe("GamesService", function () {
   describe("#addGame", function () {
@@ -56,6 +57,9 @@ describe("GamesService", function () {
     const db = Database(":memory:");
     const gamesService = new GamesService(db);
     const usersService = new UsersService(db);
+    const attendanceService = new AttendanceService(db);
+
+    attendanceService.startSession();
 
     it("should remove game and its borrowing data", function () {
       const game_id = gamesService.addGame({ name: "name" });
@@ -89,20 +93,11 @@ describe("GamesService", function () {
     });
 
     it("should throw if game has been borrowed", function () {
-      let e: any;
-
       const game_id = gamesService.addGame({ name: "name" });
       const user_id = usersService.addUser({ name: "random name" });
 
       gamesService.borrowGame({ borrower: user_id, game: game_id });
-
-      try {
-        gamesService.removeGame(game_id);
-      } catch (e_) {
-        e = e_;
-      }
-
-      expect(Boolean(e)).to.be.true;
+      expect(gamesService.removeGame.bind(gamesService, game_id)).to.throw();
     });
   });
 
@@ -111,6 +106,9 @@ describe("GamesService", function () {
       const db = Database(":memory:");
       const gamesService = new GamesService(db);
       const usersService = new UsersService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const game_id = gamesService.addGame({ name: "name" });
       const user_id = usersService.addUser({ name: "random name" });
@@ -231,6 +229,9 @@ describe("GamesService", function () {
       const gamesService = new GamesService(db);
       const usersService = new UsersService(db);
       const statisticsService = new StatisticsService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const user_id = usersService.addUser({ name: "user" });
       const game_id = gamesService.addGame({ name: "game" });
@@ -255,6 +256,9 @@ describe("GamesService", function () {
     it("should throw when user does not exist", function () {
       const db = Database(":memory:");
       const gamesService = new GamesService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const game_id = gamesService.addGame({ name: "name" });
 
@@ -273,6 +277,9 @@ describe("GamesService", function () {
       const db = Database(":memory:");
       const gamesService = new GamesService(db);
       const usersService = new UsersService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const user_id = usersService.addUser({ name: "name" });
 
@@ -291,6 +298,9 @@ describe("GamesService", function () {
       const db = Database(":memory:");
       const gamesService = new GamesService(db);
       const usersService = new UsersService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const user_id1 = usersService.addUser({ name: "name" });
       const user_id2 = usersService.addUser({ name: "name" });
@@ -302,11 +312,17 @@ describe("GamesService", function () {
         INSERT INTO borrowings (
           borrower_id, 
           game_id,
-          date_borrowed
-        ) VALUES (?, ?, ?)
+          date_borrowed,
+          session_when_borrowed
+        ) VALUES (?, ?, ?, ?)
         `
         )
-        .run(user_id1, game_id, Date.now()).lastInsertRowid;
+        .run(
+          user_id1,
+          game_id,
+          Date.now(),
+          attendanceService.getCurrentSession()?.session_id
+        ).lastInsertRowid;
 
       db.prepare(
         `
@@ -345,6 +361,9 @@ describe("GamesService", function () {
       const db = Database(":memory:");
       const gamesService = new GamesService(db);
       const usersService = new UsersService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const user_id = usersService.addUser({ name: "name" });
       const game_id1 = gamesService.addGame({ name: "name" });
@@ -356,11 +375,17 @@ describe("GamesService", function () {
         INSERT INTO borrowings (
           borrower_id, 
           game_id,
-          date_borrowed
-        ) VALUES (?, ?, ?)
+          date_borrowed,
+          session_when_borrowed
+        ) VALUES (?, ?, ?, ?)
         `
         )
-        .run(user_id, game_id1, Date.now()).lastInsertRowid;
+        .run(
+          user_id,
+          game_id1,
+          Date.now(),
+          attendanceService.getCurrentSession()?.session_id
+        ).lastInsertRowid;
 
       db.prepare(
         `
@@ -401,6 +426,9 @@ describe("GamesService", function () {
       const db = Database(":memory:");
       const gamesService = new GamesService(db);
       const usersService = new UsersService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const user_id = usersService.addUser({ name: "name" });
       const game_id = gamesService.addGame({ name: "name" });
@@ -416,6 +444,9 @@ describe("GamesService", function () {
       const db = Database(":memory:");
       const gamesService = new GamesService(db);
       const usersService = new UsersService(db);
+      const attendanceService = new AttendanceService(db);
+
+      attendanceService.startSession();
 
       const user_id1 = usersService.addUser({ name: "name" });
       const user_id2 = usersService.addUser({ name: "name" });

@@ -3,6 +3,7 @@ import TablesService from "./TablesService";
 import GamesService from "./GamesService";
 import UsersService from "./UsersService";
 import Database from "better-sqlite3";
+import AttendanceService from "./AttendanceService";
 
 describe("TablesService", function () {
   describe("#createTables", function () {
@@ -25,18 +26,6 @@ describe("TablesService", function () {
       const user = db
         .prepare("SELECT * FROM users WHERE user_id = ?")
         .all(user_id);
-
-      console.log(user);
-
-      console.log(
-        db
-          .prepare(
-            `SELECT COUNT(*)
-            FROM sessions
-            WHERE session_end IS NULL`
-          )
-          .all()
-      );
 
       (() => {
         let e: any;
@@ -88,6 +77,9 @@ describe("TablesService", function () {
       const tablesService = new TablesService(db);
       const gamesService = new GamesService(db);
       const usersService = new UsersService(db);
+      const attendanceService = new AttendanceService(db);
+
+      const session_id = attendanceService.startSession();
 
       tablesService.createTables();
 
@@ -96,8 +88,6 @@ describe("TablesService", function () {
 
       const user_id1 = usersService.addUser({ name: "user1 name" });
       const user_id2 = usersService.addUser({ name: "user2 name" });
-
-      console.log(usersService.getUser(user_id1));
 
       gamesService.borrowGame({ borrower: user_id1, game: game_id1 });
       gamesService.borrowGame({ borrower: user_id2, game: game_id2 });
@@ -124,12 +114,14 @@ describe("TablesService", function () {
           game_id: game_id1,
           game_name: "game1 name",
           user_name: "user1 name",
+          session_when_borrowed: session_id,
         },
         {
           user_id: user_id2,
           game_id: game_id2,
           game_name: "game2 name",
           user_name: "user2 name",
+          session_when_borrowed: session_id,
         },
       ]);
     });

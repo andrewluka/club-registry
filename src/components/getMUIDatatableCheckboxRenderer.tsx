@@ -5,19 +5,20 @@ import { Checkbox } from "@material-ui/core";
 import { MUIDataTableMeta } from "mui-datatables";
 import { useErrorSnackbar } from "../hooks/useErrorSnackbar";
 import { useState } from "react";
+import { ErrorWrapper } from "../typings/tables";
 
 interface Options {
-  unsuspend: (id: number) => boolean;
-  suspend: (id: number) => boolean;
+  uncheck?: (id: number) => ErrorWrapper<void>;
+  check?: (id: number) => ErrorWrapper<void>;
   idIndex?: number;
 }
 
-export const getMUIDatatableIsSuspendedRenderer = ({
-  unsuspend,
-  suspend,
+export const getMUIDatatableCheckboxRenderer = ({
+  uncheck,
+  check,
   idIndex = 0,
 }: Options) => {
-  const MUIDatatableIsSuspendedRenderer: MUIDatatableRenderer<boolean> = (
+  const MUIDatatableCheckboxRenderer: MUIDatatableRenderer<boolean> = (
     value,
     tableMeta
   ) => {
@@ -33,20 +34,27 @@ export const getMUIDatatableIsSuspendedRenderer = ({
 
       return (
         <Checkbox
+          disabled={
+            (isChecked && !uncheck) ||
+            (!isChecked && !check) ||
+            (!check && !uncheck)
+          }
           color="secondary"
           checked={!!isChecked}
           onChange={(event) => {
             const isChecked = event.target.checked;
             const id = tableMeta.rowData[idIndex];
-            const operationDidSucceed = isChecked ? suspend(id) : unsuspend(id);
+            const { isError, payload } =
+              (isChecked ? check?.(id) : uncheck?.(id)) || {};
 
-            if (operationDidSucceed) {
+            if (isError === undefined) return;
+
+            if (!isError) {
               setIsChecked(isChecked);
             } else {
               enqueueErrorSnackbar({
-                errorMessage: isChecked
-                  ? "Couldn't do that; check borrowed games and users"
-                  : "Couldn't do that",
+                errorMessage:
+                  (payload as any)?.message || String(payload) || "",
               });
             }
           }}
@@ -57,5 +65,5 @@ export const getMUIDatatableIsSuspendedRenderer = ({
     return <CheckboxComponent value={value} tableMeta={tableMeta} />;
   };
 
-  return MUIDatatableIsSuspendedRenderer;
+  return MUIDatatableCheckboxRenderer;
 };

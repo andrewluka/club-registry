@@ -1,16 +1,7 @@
 import { Database } from "better-sqlite3";
 import { GameID } from "../../src/typings/game";
 import { UserID } from "../../src/typings/user";
-
-interface BorrowerAndGame {
-  game_id: GameID;
-  user_id: UserID;
-
-  date_borrowed: number;
-
-  game_name: string;
-  user_name: string;
-}
+import { BorrowerAndGame } from "../../src/typings/statistics";
 
 const currentUnixTimestampInMsGetterName = "getCurrentUnixTimestampInMs";
 
@@ -28,7 +19,7 @@ export default class TablesService {
           user_id INTEGER NOT NULL PRIMARY KEY,
           name TEXT NOT NULL,
           date_of_addition INTEGER NOT NULL 
-            DEFAULT (${this.getCurrentBorrowersAndGames}()),
+            DEFAULT (${currentUnixTimestampInMsGetterName}()),
           date_of_birth INTEGER,
           phone_number VARCHAR(100),
           is_suspended INT NOT NULL DEFAULT 0 
@@ -54,7 +45,7 @@ export default class TablesService {
           game_id INTEGER NOT NULL PRIMARY KEY,
           name TEXT NOT NULL,
           date_of_addition INTEGER NOT NULL
-            DEFAULT (${this.getCurrentBorrowersAndGames}()),
+            DEFAULT (${currentUnixTimestampInMsGetterName}()),
           tags TEXT,
           is_suspended INT NOT NULL DEFAULT 0
             CHECK(
@@ -78,12 +69,14 @@ export default class TablesService {
         CREATE TABLE IF NOT EXISTS borrowings (
           borrowing_id INTEGER PRIMARY KEY NOT NULL,
           date_borrowed INTEGER NOT NULL 
-            DEFAULT (${this.getCurrentBorrowersAndGames}()),
+            DEFAULT (${currentUnixTimestampInMsGetterName}()),
           date_returned INTEGER,
           borrower_id INTEGER NOT NULL
             REFERENCES users (user_id) ON DELETE CASCADE,
           game_id INTEGER NOT NULL
-            REFERENCES games (game_id) ON DELETE CASCADE
+            REFERENCES games (game_id) ON DELETE CASCADE,
+          session_when_borrowed INTEGER NOT NULL
+            REFERENCES sessions (session_id) ON DELETE CASCADE
         )
         `
       )
@@ -96,17 +89,9 @@ export default class TablesService {
         `
       CREATE TABLE IF NOT EXISTS sessions (
         session_id INTEGER PRIMARY KEY NOT NULL,
-        session_end INTEGER UNIQUE CHECK(
-          CASE WHEN 
-            session_end IS NULL 
-          THEN 
-            1 
-          ELSE
-            session_end > session_start
-          END
-        ),
+        session_end INTEGER UNIQUE CHECK(session_end > session_start),
         session_start INTEGER UNIQUE NOT NULL
-          DEFAULT (${this.getCurrentBorrowersAndGames}())
+          DEFAULT (${currentUnixTimestampInMsGetterName}())
       )
       `
       )
@@ -133,12 +118,13 @@ export default class TablesService {
       .prepare(
         `
         CREATE TABLE IF NOT EXISTS attendance (
-          attendee INTEGER UNIQUE NOT NULL
+          attendee INTEGER NOT NULL
             REFERENCES users (user_id) ON DELETE CASCADE,
-          session INTEGER UNIQUE NOT NULL
+          session INTEGER NOT NULL
             REFERENCES sessions (session_id) ON DELETE CASCADE,
-          attendee_arrival_datetime INTEGER NOT NULL
-            DEFAULT (${currentUnixTimestampInMsGetterName}())
+          attendee_arrival_time INTEGER NOT NULL
+            DEFAULT (${currentUnixTimestampInMsGetterName}()),
+          PRIMARY KEY (attendee, session)
         )
         `
       )
@@ -147,13 +133,32 @@ export default class TablesService {
     this.db
       .prepare(
         `
-      CREATE TRIGGER IF NOT EXISTS multiple_unfinished_sessions_check
-        BEFORE INSERT ON sessions
+      CREATE TRIGGER IF NOT EXISTS mark_user_in_open_sessions_only_on_insert_check
+        BEFORE INSERT ON attendance
       BEGIN
-        SELECT RAISE(FAIL, "multiple unfinished sessions")
-          FROM sessions
+        SELECT RAISE(
+          FAIL,
+          "cannot mark a user present on an already-finished session"
+        )
+          FROM attendance
         WHERE 
-          (SELECT COUNT(*) FROM sessions WHERE session_end IS NULL) > 0;
+          (
+            SELECT sessions.session_end
+            FROM sessions 
+            WHERE session_id = NEW.session
+          ) IS NOT NULL;
+        END
+      `
+      )
+      .run();
+
+    this.db
+      .prepare(
+        `
+      CREATE TRIGGER IF NOT EXISTS disable_update_on_attendance_table_check
+        BEFORE UPDATE ON attendance
+      BEGIN
+        SELECT RAISE(FAIL, "cannot update attendance table") FROM attendance;
       END
       `
       )
@@ -177,7 +182,8 @@ export default class TablesService {
           borrowings.game_id as game_id,
           users.name as user_name,
           games.name as game_name,
-          borrowings.date_borrowed as date_borrowed
+          borrowings.date_borrowed as date_borrowed,
+          session_when_borrowed
         FROM 
           borrowings
         INNER JOIN users 

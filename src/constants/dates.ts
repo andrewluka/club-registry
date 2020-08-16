@@ -9,4 +9,6 @@ export const CARDINAL_DAYS_OF_THE_MONTH = "dd";
 
 export const HOURS_WITH_MERIDIAN = "h a";
 
+export const HOURS_12 = "h";
+
 export const MONTH_FULL_NAMES = "MMMM";

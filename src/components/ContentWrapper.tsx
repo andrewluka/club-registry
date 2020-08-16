@@ -3,7 +3,7 @@ import { jsx } from "@emotion/core";
 import { FC } from "react";
 import { DRAWER_WIDTH, APP_BAR_HEIGHT } from "../constants/ui";
 
-export const TableWrapper: FC = ({ children }) => {
+export const ContentWrapper: FC = ({ children }) => {
   const contentOffset = 10;
 
   return (

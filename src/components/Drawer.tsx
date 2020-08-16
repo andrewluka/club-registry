@@ -16,6 +16,7 @@ import { Routes } from "../constants/routes";
 import HomeIcon from "@material-ui/icons/Home";
 import UsersIcon from "@material-ui/icons/PeopleAlt";
 import GamesIcon from "@material-ui/icons/SportsEsports";
+import AttendanceIcon from "@material-ui/icons/People";
 import StatisticsIcon from "@material-ui/icons/PieChart";
 import { DRAWER_WIDTH } from "../constants/ui";
 import { FC } from "react";
@@ -34,7 +35,8 @@ export const Drawer = () => {
   ];
 
   const secondaryActions: Action[] = [
-    { pathToPush: Routes.STATISTICS, text: "Statistics", Icon: StatisticsIcon },
+    { pathToPush: Routes.ATTENDANCE, text: "Attendance", Icon: AttendanceIcon },
+    // { pathToPush: Routes.STATISTICS, text: "Statistics", Icon: StatisticsIcon },
   ];
 
   const history = useHistory();

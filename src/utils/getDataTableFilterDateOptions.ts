@@ -5,6 +5,7 @@ import {
   HOURS_WITH_MERIDIAN,
   MONTH_FULL_NAMES,
   YEARS_IN_FULL,
+  HOURS_12,
 } from "../constants/dates";
 
 interface Options<Row> {
@@ -39,7 +40,7 @@ export const getDataTableDateFilterOptions = <Row>({
         return token + date.format(ORDINAL_DAYS_OF_THE_MONTH);
 
       case Token.HOUR_TOKEN:
-        return token + date.format(HOURS_WITH_MERIDIAN);
+        return token + date.format(HOURS_12);
 
       case Token.MONTH_TOKEN:
         return token + date.format(MONTH_FULL_NAMES);
@@ -71,7 +72,7 @@ export const getDataTableDateFilterOptions = <Row>({
 
     switch (token) {
       case Token.DAY_TOKEN:
-        return `A ${date.substring(1)}`;
+        return `The ${date.substring(1)}`;
       case Token.HOUR_TOKEN:
         return date.substring(1);
       case Token.MONTH_TOKEN:
@@ -89,7 +90,7 @@ export const getDataTableDateFilterOptions = <Row>({
       renderValue: renderTokenedDate,
       logic: (prop, filterValues) => {
         const token = filterValues[0][0] as Token;
-        const filterValue = filterValues[0].substring(1) as string;
+        const filterValue = filterValues[0].substring(1);
 
         if (typeof prop === "string") return !prop.includes(filterValue);
         if (typeof prop === "number")

@@ -15,13 +15,14 @@ import { TagsAutoComplete } from "./TagsAutoComplete";
 import AddIcon from "@material-ui/icons/Add";
 import { Fragment, useState } from "react";
 import { MUIDatatableRenderer } from "../typings/muiDatatable";
+import { ErrorWrapper } from "../typings/tables";
 
 interface Options<Row> {
   allGameTags: string[];
   tagChipsStatesMap: Map<number, boolean>;
   updateMapAtId: (id: number, newValue: boolean) => void;
   idIndex?: number;
-  update?: (options: { id: number; newTags: string[] }) => boolean;
+  update?: (options: { id: number; newTags: string[] }) => ErrorWrapper<void>;
 }
 
 type TagsUpdater = (
@@ -169,11 +170,15 @@ export const getMUIDatatableGameTagsRenderer = <Row extends any>({
 
       if (!update || !editable) return;
 
-      const wasOperationSuccessful = update({ id, newTags });
+      const { isError, payload } = update({ id, newTags });
 
-      wasOperationSuccessful
+      isError
         ? enqueueSuccessSnackbar({ successMessage: "Updated tags" })
-        : enqueueErrorSnackbar({ errorMessage: "Couldn't update tags" });
+        : enqueueErrorSnackbar({
+            errorMessage:
+              "Couldn't update tags: " +
+              ((payload as any)?.message || payload || ""),
+          });
     };
 
     return (

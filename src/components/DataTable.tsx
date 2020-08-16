@@ -5,6 +5,7 @@ import MUIDataTable, {
 } from "mui-datatables";
 import { useErrorSnackbar } from "../hooks/useErrorSnackbar";
 import { useSuccessSnackbar } from "../hooks/useSuccessSnackbar";
+import { ErrorWrapper } from "../typings/tables";
 
 interface BaseProps<Row> {
   rows: Row[];
@@ -19,7 +20,7 @@ interface BaseProps<Row> {
 
 interface RemovalProps<Row> extends BaseProps<Row> {
   getRowId: (row: Row) => number;
-  remove: (id: number) => boolean;
+  remove: (id: number) => ErrorWrapper<void>;
 }
 
 type Props<Row> = BaseProps<Row> | RemovalProps<Row>;
@@ -46,10 +47,16 @@ export const DataTable = <Row extends object | number[] | string[]>(
         onRowsDelete: isRemovingAllowed
           ? ({ data: rowsToDelete }) => {
               const id = getRowId(rows[rowsToDelete[0].dataIndex]);
-              const isDeleteSuccessful = remove(id);
+              const resp = remove(id);
+              const isDeleteSuccessful = !resp.isError;
 
               if (!isDeleteSuccessful) {
-                enqueueErrorSnackbar();
+                enqueueErrorSnackbar({
+                  errorMessage:
+                    (resp.payload as Error)?.message ||
+                    String(resp.payload) ||
+                    "Couldn't delete row",
+                });
                 return false;
               } else {
                 enqueueSuccessSnackbar();

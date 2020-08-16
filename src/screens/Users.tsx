@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Drawer } from "../components/Drawer";
 import { AppBar } from "../components/AppBar";
-import { TableWrapper } from "../components/TableWrapper";
+import { ContentWrapper } from "../components/ContentWrapper";
 import { useUsers } from "../hooks/useUsers";
 import { DataTable, DataTableColumnDef } from "../components/DataTable";
 import {
@@ -14,8 +14,8 @@ import {
   updateUserPhoneNumber,
 } from "../services/usersServices";
 import { getMUIDatatableEditableRenderer } from "../components/getMUIDatatableEditableRenderer";
-import { getMUIDatatableIsSuspendedRenderer } from "../components/getMUIDatatableIsSuspendedRenderer";
-import { RedirectCornerFab } from "../components/RedirectCornerFab";
+import { getMUIDatatableCheckboxRenderer } from "../components/getMUIDatatableCheckboxRenderer";
+import { CornerFab } from "../components/CornerFab";
 import { Routes } from "../constants/routes";
 import AddIcon from "@material-ui/icons/Add";
 import { getMUIDatatableQRCodeRenderer } from "../components/getMUIDatatableQRCodeRenderer";
@@ -32,6 +32,10 @@ import { MaterialUiPickersDate } from "@material-ui/pickers/typings/date";
 import { isNumOrEmpty } from "../utils/isNumOrEmpty";
 import { getDataTableIsSuspendedOptions } from "../utils/getDataTableIsSuspendedOptions";
 import { isNotNullOrUndefined } from "../utils/isNotNullOrUndefined";
+import { getDateOfAdditionColumnDef } from "../utils/getDateOfAdditionColumnDef";
+import { getDateSearcher } from "../utils/getDateSearcher";
+import { useHistory } from "react-router-dom";
+import { CurrentSessionData } from "../components/CurrentSessionData";
 
 export const Users = () => {
   const { data: rows } = useUsers();
@@ -39,6 +43,7 @@ export const Users = () => {
   const { enqueueErrorSnackbar } = useErrorSnackbar();
   const { enqueueSuccessSnackbar } = useSuccessSnackbar();
 
+  const history = useHistory();
   const theme = useTheme();
 
   const columns: DataTableColumnDef[] = [
@@ -55,7 +60,16 @@ export const Users = () => {
       options: {
         filter: false,
         customBodyRender: getMUIDatatableEditableRenderer({
-          get: (user_id) => getUser(user_id).name,
+          get: (id) => {
+            const { payload, isError } = getUser(id);
+
+            if (isError) return { payload: payload, isError } as any;
+
+            return {
+              isError: false,
+              payload: String(payload?.name || ""),
+            };
+          },
           update: ({ id, newValue }) =>
             updateUserName({ user_id: id, newName: newValue }),
         }),
@@ -121,7 +135,16 @@ export const Users = () => {
         filter: false,
         customBodyRender: getMUIDatatableEditableRenderer({
           validateInput: isNumOrEmpty,
-          get: (user_id) => getUser(user_id).phone_number || "",
+          get: (id) => {
+            const { payload, isError } = getUser(id);
+
+            if (isError) return { payload: payload, isError } as any;
+
+            return {
+              isError: false,
+              payload: String((payload as User)?.phone_number || ""),
+            };
+          },
           update: ({ id, newValue }) =>
             updateUserPhoneNumber({
               user_id: id,
@@ -130,13 +153,17 @@ export const Users = () => {
         }),
       },
     },
+    getDateOfAdditionColumnDef({
+      rows,
+      extractDate: ({ date_of_addition }) => date_of_addition,
+    }),
     {
       name: "is_suspended",
       label: "Suspended?",
       options: {
-        customBodyRender: getMUIDatatableIsSuspendedRenderer({
-          suspend: suspendUser,
-          unsuspend: unsuspendUser,
+        customBodyRender: getMUIDatatableCheckboxRenderer({
+          check: suspendUser,
+          uncheck: unsuspendUser,
         }),
         ...getDataTableIsSuspendedOptions(),
       },
@@ -173,35 +200,22 @@ export const Users = () => {
     <React.Fragment>
       <Drawer />
       <AppBar title="Users" />
-      <TableWrapper>
+      <ContentWrapper>
+        <CurrentSessionData />
         <DataTable
           title="Users"
           columns={columns}
           rows={rows}
           getRowId={({ user_id }) => user_id}
           remove={removeUser}
-          customSearch={(searchQuery, rawRow, columns) => {
-            const row = [...rawRow];
-            const dateOfBirthIndex = columns.findIndex(
-              ({ name }) => name === "date_of_birth"
-            );
-            row[dateOfBirthIndex] = moment(row[dateOfBirthIndex]).format(
-              SPELLED_OUT_DATE_FORMAT
-            );
-            searchQuery = searchQuery.toLowerCase();
-
-            const rowString = row
-              .filter(isNotNullOrUndefined)
-              .join("")
-              .toLowerCase();
-
-            return rowString.includes(searchQuery);
-          }}
+          customSearch={getDateSearcher({
+            namesOfColumnsWithDates: ["date_of_birth", "date_of_addition"],
+          })}
         />
-      </TableWrapper>
-      <RedirectCornerFab
+      </ContentWrapper>
+      <CornerFab
         tooltipTitle="Add User"
-        redirectUrl={Routes.ADD_USER}
+        onClick={() => history.push(Routes.ADD_USER)}
         Icon={AddIcon}
       />
     </React.Fragment>
