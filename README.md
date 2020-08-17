@@ -14,3 +14,16 @@ Node.js, Python and Visual Studio C++ Toolchain (Windows only) are required to b
 npm install
 npm run electron:build
 ```
+
+## Plans
+
+<ul>
+
+<li>At the moment, the games' 'tags' field is not very usefull, but game usage statistics can be generated from it: we can count the number of times a tag has been borrowed, and thus gain insight into its popularity. Tags can be anything, but they ought to be descriptive. For example, a 'chess' game could have tags like '1v1', 'multiplayer', 'mind game' or something like that.
+</li>
+
+<li>
+Settings seem to be a bit set in stone, and this could be changed. People who use the program should be able to choose a theme, change locale, etc.
+</li>
+
+</ul>
