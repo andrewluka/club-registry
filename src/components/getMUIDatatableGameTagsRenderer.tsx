@@ -172,7 +172,7 @@ export const getMUIDatatableGameTagsRenderer = <Row extends any>({
 
       const { isError, payload } = update({ id, newTags });
 
-      isError
+      !isError
         ? enqueueSuccessSnackbar({ successMessage: "Updated tags" })
         : enqueueErrorSnackbar({
             errorMessage:

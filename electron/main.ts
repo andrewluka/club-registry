@@ -19,6 +19,20 @@ import getAppDataDir from "./utils/getAppDataDir";
 
 const isDev = !app.isPackaged;
 
+let win: BrowserWindow | null = null;
+
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+  process.exit();
+} else {
+  app.on("second-instance", () => {
+    if (win?.isMinimized()) win?.restore();
+    win?.focus();
+  });
+}
+
 if (!("toJSON" in Error.prototype))
   Object.defineProperty(Error.prototype, "toJSON", {
     value: function () {
@@ -57,8 +71,6 @@ const registerIpcFunc = <FnParams extends any[], FnReturnType>(
       } as ErrorWrapper<any>;
     }
   });
-
-let win: BrowserWindow | null = null;
 
 const db = Database(join(getAppDataDir(), "database.db"));
 
