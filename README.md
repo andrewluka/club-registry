@@ -23,7 +23,7 @@ npm run electron:build
 </li>
 
 <li>
-Settings seem to be a bit set in stone, and this could be changed. People who use the program should be able to choose a theme, change locale, etc.
+Settings seem to be a bit set in stone, and this could be changed. People who use the program should be able to choose a theme, change language, etc.
 </li>
 
 </ul>
